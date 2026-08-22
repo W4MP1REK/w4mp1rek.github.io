@@ -20,7 +20,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('login-form');
     const logoutBtn = document.getElementById('logout-btn');
 
-    // Sprawdzenie sesji logowania
     if (sessionStorage.getItem('auth_ok') === 'true') {
         showApp();
     }
@@ -52,16 +51,24 @@ document.addEventListener('DOMContentLoaded', () => {
         let selectedDateStr = formatDate(currentDate);
         let appData = { days: {}, payouts: {} };
 
-        // Precyzyjne obliczanie stawki na podstawie ŁĄCZNEJ liczby paczek
-        function calculateDayRate(totalParcels) {
-            const count = Number(totalParcels) || 0;
-            if (count === 0) return 0;
-            if (count < 200) return 240;
-            if (count <= 300) return 270;
-            return 300; // Powyżej 300 paczek
+        // Obliczanie stawki za dzień (progi + ewentualna 2. zmiana)
+        function calculateDayRate(totalParcels, hasSecondShift = false) {
+            const count = parseInt(totalParcels, 10) || 0;
+            let rate = 0;
+
+            if (count > 0) {
+                if (count < 200) rate = 240;
+                else if (count <= 300) rate = 270;
+                else if (count > 300) rate = 300;
+            }
+
+            if (hasSecondShift) {
+                rate += 150;
+            }
+
+            return rate;
         }
 
-        // Synchronizacja na żywo z chmurą Google
         db.collection('kurier_app').doc('main_data')
             .onSnapshot((doc) => {
                 if (doc.exists) {
@@ -138,12 +145,17 @@ document.addEventListener('DOMContentLoaded', () => {
             const title = document.getElementById('selected-date-title');
             if (title) title.textContent = `Wybrany dzień: ${dateStr}`;
 
-            const dayData = (appData.days && appData.days[dateStr]) ? appData.days[dateStr] : { address: 0, apm: 0, pudo: 0, pickups: 0 };
+            const dayData = (appData.days && appData.days[dateStr]) ? appData.days[dateStr] : { address: 0, apm: 0, pudo: 0, pickups: 0, secondShift: false };
 
             document.getElementById('address').value = dayData.address || 0;
             document.getElementById('apm').value = dayData.apm || 0;
             document.getElementById('pudo').value = dayData.pudo || 0;
             document.getElementById('pickups').value = dayData.pickups || 0;
+
+            const secondShiftCheckbox = document.getElementById('second-shift');
+            if (secondShiftCheckbox) {
+                secondShiftCheckbox.checked = !!dayData.secondShift;
+            }
 
             calculateDailyTotals();
         }
@@ -154,20 +166,32 @@ document.addEventListener('DOMContentLoaded', () => {
             const pudo = parseInt(document.getElementById('pudo').value, 10) || 0;
             const pick = parseInt(document.getElementById('pickups').value, 10) || 0;
 
-            const total = addr + apm + pudo + pick;
-            const rate = calculateDayRate(total);
+            const secondShiftCheckbox = document.getElementById('second-shift');
+            const hasSecondShift = secondShiftCheckbox ? secondShiftCheckbox.checked : false;
 
-            document.getElementById('daily-total-parcels').textContent = total;
-            document.getElementById('daily-rate').textContent = `${rate.toFixed(2)} zł`;
+            const totalParcels = addr + apm + pudo + pick;
+            const rate = calculateDayRate(totalParcels, hasSecondShift);
+
+            const totalEl = document.getElementById('daily-total-parcels');
+            const rateEl = document.getElementById('daily-rate');
+
+            if (totalEl) totalEl.textContent = totalParcels;
+            if (rateEl) rateEl.textContent = `${rate.toFixed(2)} zł`;
         }
 
         ['address', 'apm', 'pudo', 'pickups'].forEach(id => {
             const el = document.getElementById(id);
             if (el) {
                 el.addEventListener('input', calculateDailyTotals);
+                el.addEventListener('keyup', calculateDailyTotals);
                 el.addEventListener('change', calculateDailyTotals);
             }
         });
+
+        const secondShiftCheckbox = document.getElementById('second-shift');
+        if (secondShiftCheckbox) {
+            secondShiftCheckbox.addEventListener('change', calculateDailyTotals);
+        }
 
         const form = document.getElementById('daily-form');
         if (form) {
@@ -176,11 +200,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (!appData.days) appData.days = {};
 
+                const secondShiftCb = document.getElementById('second-shift');
+
                 appData.days[selectedDateStr] = {
                     address: parseInt(document.getElementById('address').value, 10) || 0,
                     apm: parseInt(document.getElementById('apm').value, 10) || 0,
                     pudo: parseInt(document.getElementById('pudo').value, 10) || 0,
-                    pickups: parseInt(document.getElementById('pickups').value, 10) || 0
+                    pickups: parseInt(document.getElementById('pickups').value, 10) || 0,
+                    secondShift: secondShiftCb ? secondShiftCb.checked : false
                 };
 
                 try {
@@ -245,6 +272,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const apm = parseInt(d.apm, 10) || 0;
                         const pudo = parseInt(d.pudo, 10) || 0;
                         const pick = parseInt(d.pickups, 10) || 0;
+                        const hasSecondShift = !!d.secondShift;
 
                         mAddr += addr;
                         mApm += apm;
@@ -252,7 +280,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         mPick += pick;
 
                         const dayTotal = addr + apm + pudo + pick;
-                        mEarnings += calculateDayRate(dayTotal);
+                        mEarnings += calculateDayRate(dayTotal, hasSecondShift);
                     }
                 });
             }

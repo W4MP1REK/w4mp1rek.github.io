@@ -13,7 +13,7 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 
-// Zakodowany PIN ("0609") w algorytmie SHA-256 - nikt go nie odczyta z kodu JS!
+// Zakodowany PIN ("0609") w algorytmie SHA-256
 const PIN_HASH = "80f1350a41f64835695a43dbd2371b26c26f07fef7e066060c2bc957f891b979";
 
 // Funkcja pomocnicza do hashowania podanego PIN-u
@@ -31,14 +31,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('login-form');
     const logoutBtn = document.getElementById('logout-btn');
 
-    // Nasłuchiwanie stanu autoryzacji z Firebase
-    auth.onAuthStateChanged((user) => {
-        if (user && sessionStorage.getItem('auth_ok') === 'true') {
-            showApp();
-        } else {
-            showLogin();
-        }
-    });
+    // Sprawdzanie stanu sesji przy ładowaniu
+    if (sessionStorage.getItem('auth_ok') === 'true') {
+        showApp();
+    } else {
+        showLogin();
+    }
 
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
@@ -48,13 +46,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (hashedInput === PIN_HASH) {
                 try {
-                    // Logowanie w Firebase Auth (Anonimowo) celem uzyskania tokenu dostępu do bazy
-                    await auth.signInAnonymously();
-                    sessionStorage.setItem('auth_ok', 'true');
-                    showApp();
+                    if (!auth.currentUser) {
+                        await auth.signInAnonymously();
+                    }
                 } catch (error) {
-                    alert('Błąd autoryzacji Firebase: ' + error.message);
+                    console.warn("Firebase Auth Warning:", error.message);
                 }
+                sessionStorage.setItem('auth_ok', 'true');
+                showApp();
             } else {
                 alert('Błędny PIN!');
                 document.getElementById('pin-input').value = '';
@@ -65,7 +64,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (logoutBtn) {
         logoutBtn.addEventListener('click', async () => {
             sessionStorage.removeItem('auth_ok');
-            await auth.signOut();
+            try {
+                await auth.signOut();
+            } catch (e) {
+                console.warn(e);
+            }
             location.reload();
         });
     }
@@ -103,7 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return rate;
         }
 
-        // Subskrypcja Firebase po autoryzacji
+        // Subskrypcja Firebase z automatycznym odczytem danych
         db.collection('kurier_app').doc('main_data')
             .onSnapshot((doc) => {
                 if (doc.exists) {
@@ -116,7 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderStats();
                 populateMonthSelector();
             }, (err) => {
-                console.error("Błąd braku uprawnień Firebase:", err);
+                console.error("Błąd pobierania danych z Firebase:", err);
             });
 
         function formatDate(d) {

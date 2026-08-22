@@ -8,21 +8,9 @@ const firebaseConfig = {
     appId: "1:439457783683:web:57a9353f58e2c42dd9a0b6"
 };
 
-// Inicjalizacja usług Firebase (TYLKO FIRESTORE)
+// Inicjalizacja Firestore
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
-
-
-const PIN_HASH = "80f1350a41f64835695a43dbd2371b26c26f07fef7e066060c2bc957f891b979";
-
-// Funkcja pomocnicza do szyfrowania PIN-u
-async function hashPin(pin) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(pin);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
 
 document.addEventListener('DOMContentLoaded', () => {
     const authModal = document.getElementById('auth-modal');
@@ -30,7 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('login-form');
     const logoutBtn = document.getElementById('logout-btn');
 
-    // Sprawdzanie stanu sesji w przeglądarce
+    // Sprawdzanie stanu sesji
     if (sessionStorage.getItem('auth_ok') === 'true') {
         showApp();
     } else {
@@ -40,15 +28,27 @@ document.addEventListener('DOMContentLoaded', () => {
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const inputPin = document.getElementById('pin-input').value;
-            const hashedInput = await hashPin(inputPin);
+            const inputPin = document.getElementById('pin-input').value.trim();
 
-            if (hashedInput === PIN_HASH) {
-                sessionStorage.setItem('auth_ok', 'true');
-                showApp();
-            } else {
-                alert('Błędny PIN!');
-                document.getElementById('pin-input').value = '';
+            try {
+                // Pobranie PIN-u z bazy Firebase (kolekcja: kurier_app, dokument: settings)
+                const doc = await db.collection('kurier_app').doc('settings').get();
+                
+                if (doc.exists && doc.data().pin) {
+                    const dbPin = String(doc.data().pin).trim();
+
+                    if (inputPin === dbPin) {
+                        sessionStorage.setItem('auth_ok', 'true');
+                        showApp();
+                    } else {
+                        alert('Błędny PIN!');
+                        document.getElementById('pin-input').value = '';
+                    }
+                } else {
+                    alert('Brak skonfigurowanego PIN-u w bazie Firestore!');
+                }
+            } catch (error) {
+                alert('Błąd podczas weryfikacji PIN-u: ' + error.message);
             }
         });
     }
@@ -93,7 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return rate;
         }
 
-        // Subskrypcja bazy danych Firestore
+        // Pobieranie głównych danych aplikacji z Firestore
         db.collection('kurier_app').doc('main_data')
             .onSnapshot((doc) => {
                 if (doc.exists) {

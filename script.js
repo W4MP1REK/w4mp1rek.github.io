@@ -25,23 +25,18 @@ document.addEventListener('DOMContentLoaded', () => {
         showLogin();
     }
 
-if (loginForm) {
+    if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            // Pobranie wartości z inputa i bezwzględna konwersja na String
+            // Konwersja na string + usunięcie białych znaków (spacji)
             const inputPin = String(document.getElementById('pin-input').value).trim();
 
             try {
-                // Pobranie PIN-u z Firestore (kolekcja: kurier_app, dokument: settings)
                 const doc = await db.collection('kurier_app').doc('settings').get();
                 
                 if (doc.exists && doc.data().pin !== undefined) {
-                    // Konwersja pola z Firestore na String bez względu na to, czy baza trzyma to jako number czy string
                     const dbPin = String(doc.data().pin).trim();
-
-                    console.log("Wpisany PIN:", inputPin);
-                    console.log("PIN z Bazy:", dbPin);
 
                     if (inputPin === dbPin) {
                         sessionStorage.setItem('auth_ok', 'true');
@@ -51,7 +46,7 @@ if (loginForm) {
                         document.getElementById('pin-input').value = '';
                     }
                 } else {
-                    alert('Brak skonfigurowanego dokumentu "settings" lub pola "pin" w Firestore!');
+                    alert('Brak dokumentu settings lub pola pin w bazie Firestore!');
                 }
             } catch (error) {
                 alert('Błąd podczas weryfikacji PIN-u: ' + error.message);

@@ -52,12 +52,13 @@ document.addEventListener('DOMContentLoaded', () => {
         let selectedDateStr = formatDate(currentDate);
         let appData = { days: {}, payouts: {} };
 
-        // Funkcja obliczająca stawkę na podstawie łącznej liczby paczek
+        // Precyzyjne obliczanie stawki na podstawie ŁĄCZNEJ liczby paczek
         function calculateDayRate(totalParcels) {
-            if (totalParcels === 0) return 0;
-            if (totalParcels < 200) return 240;
-            if (totalParcels <= 300) return 270;
-            return 300; // powyżej 300 paczek
+            const count = Number(totalParcels) || 0;
+            if (count === 0) return 0;
+            if (count < 200) return 240;
+            if (count <= 300) return 270;
+            return 300; // Powyżej 300 paczek
         }
 
         // Synchronizacja na żywo z chmurą Google
@@ -148,10 +149,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         function calculateDailyTotals() {
-            const addr = parseInt(document.getElementById('address').value) || 0;
-            const apm = parseInt(document.getElementById('apm').value) || 0;
-            const pudo = parseInt(document.getElementById('pudo').value) || 0;
-            const pick = parseInt(document.getElementById('pickups').value) || 0;
+            const addr = parseInt(document.getElementById('address').value, 10) || 0;
+            const apm = parseInt(document.getElementById('apm').value, 10) || 0;
+            const pudo = parseInt(document.getElementById('pudo').value, 10) || 0;
+            const pick = parseInt(document.getElementById('pickups').value, 10) || 0;
 
             const total = addr + apm + pudo + pick;
             const rate = calculateDayRate(total);
@@ -162,7 +163,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         ['address', 'apm', 'pudo', 'pickups'].forEach(id => {
             const el = document.getElementById(id);
-            if (el) el.addEventListener('input', calculateDailyTotals);
+            if (el) {
+                el.addEventListener('input', calculateDailyTotals);
+                el.addEventListener('change', calculateDailyTotals);
+            }
         });
 
         const form = document.getElementById('daily-form');
@@ -173,10 +177,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!appData.days) appData.days = {};
 
                 appData.days[selectedDateStr] = {
-                    address: parseInt(document.getElementById('address').value) || 0,
-                    apm: parseInt(document.getElementById('apm').value) || 0,
-                    pudo: parseInt(document.getElementById('pudo').value) || 0,
-                    pickups: parseInt(document.getElementById('pickups').value) || 0
+                    address: parseInt(document.getElementById('address').value, 10) || 0,
+                    apm: parseInt(document.getElementById('apm').value, 10) || 0,
+                    pudo: parseInt(document.getElementById('pudo').value, 10) || 0,
+                    pickups: parseInt(document.getElementById('pickups').value, 10) || 0
                 };
 
                 try {
@@ -237,10 +241,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (appData.days) {
                 Object.entries(appData.days).forEach(([date, d]) => {
                     if (date.startsWith(selectedMonth)) {
-                        const addr = d.address || 0;
-                        const apm = d.apm || 0;
-                        const pudo = d.pudo || 0;
-                        const pick = d.pickups || 0;
+                        const addr = parseInt(d.address, 10) || 0;
+                        const apm = parseInt(d.apm, 10) || 0;
+                        const pudo = parseInt(d.pudo, 10) || 0;
+                        const pick = parseInt(d.pickups, 10) || 0;
 
                         mAddr += addr;
                         mApm += apm;

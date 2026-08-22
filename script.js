@@ -52,11 +52,12 @@ document.addEventListener('DOMContentLoaded', () => {
         let selectedDateStr = formatDate(currentDate);
         let appData = { days: {}, payouts: {} };
 
-        // Funkcja pomocnicza: oblicza stawkę za dzień na podstawie ŁĄCZNEJ liczby paczek
+        // Funkcja obliczająca stawkę na podstawie łącznej liczby paczek
         function calculateDayRate(totalParcels) {
             if (totalParcels === 0) return 0;
             if (totalParcels < 200) return 240;
-            return 270; // 200 paczek i więcej (w tym powyżej 300) -> 270 zł
+            if (totalParcels <= 300) return 270;
+            return 300; // powyżej 300 paczek
         }
 
         // Synchronizacja na żywo z chmurą Google
@@ -246,7 +247,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         mPudo += pudo;
                         mPick += pick;
 
-                        // Obliczanie wygranej za dany dzień według łącznej ilości paczek
                         const dayTotal = addr + apm + pudo + pick;
                         mEarnings += calculateDayRate(dayTotal);
                     }

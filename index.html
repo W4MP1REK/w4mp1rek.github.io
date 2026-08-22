@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aplikacja Kuriera</title>
+    <title>Rozliczenia Kurierskie</title>
     <link rel="stylesheet" href="style.css">
     <!-- Firebase SDK (v8) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -16,32 +16,32 @@
         <div class="modal-content">
             <h2>Podaj PIN</h2>
             <form id="login-form">
-                <input type="password" id="pin-input" maxlength="4" placeholder="****" required>
-                <button type="submit">Zaloguj</button>
+                <input type="password" id="pin-input" maxlength="4" placeholder="****" required autocomplete="off">
+                <button type="submit" class="btn">Zaloguj</button>
             </form>
         </div>
     </div>
 
     <!-- Główna zawartość aplikacji -->
     <div id="app-content" style="display: none;">
-        <header>
+        <header class="app-header">
             <h1>Rozliczenia Kurierskie</h1>
-            <button id="logout-btn">Wyloguj</button>
+            <button id="logout-btn" class="btn btn-logout">Wyloguj</button>
         </header>
 
         <main class="container">
             <!-- Nawigacja Kalendarza -->
-            <section class="calendar-section">
+            <section class="card calendar-section">
                 <div class="calendar-header">
-                    <button id="prev-month">&lt;</button>
+                    <button id="prev-month" class="btn-nav">&lt;</button>
                     <h2 id="calendar-month-year"></h2>
-                    <button id="next-month">&gt;</button>
+                    <button id="next-month" class="btn-nav">&gt;</button>
                 </div>
                 <div id="calendar-grid" class="calendar-grid"></div>
             </section>
 
             <!-- Formularz Dnia -->
-            <section class="form-section">
+            <section class="card form-section">
                 <h3 id="selected-date-title">Wybrany dzień: -</h3>
                 <form id="daily-form">
                     <div class="form-group">
@@ -61,25 +61,25 @@
                         <input type="number" id="pickups" min="0" value="0">
                     </div>
 
-                    <!-- Nowa opcja: Druga zmiana -->
-                    <div class="form-group" style="margin-top: 15px;">
-                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: bold;">
-                            <input type="checkbox" id="second-shift" style="width: 20px; height: 20px;">
-                            Druga zmiana (+150 zł)
+                    <!-- Druga zmiana -->
+                    <div class="form-group checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="second-shift">
+                            <span>Druga zmiana (+150 zł)</span>
                         </label>
                     </div>
 
                     <div class="daily-summary">
                         <p>Łącznie paczek: <strong id="daily-total-parcels">0</strong></p>
-                        <p>Stawka za dzień: <strong id="daily-rate">0.00 zł</strong></p>
+                        <p>Stawka za dzień: <strong id="daily-rate" class="accent-text">0.00 zł</strong></p>
                     </div>
 
-                    <button type="submit" class="btn-save">Zapisz dzień</button>
+                    <button type="submit" class="btn btn-save">Zapisz dzień</button>
                 </form>
             </section>
 
             <!-- Statystyki Miesięczne -->
-            <section class="stats-section">
+            <section class="card stats-section">
                 <h3>Statystyki Miesięczne</h3>
                 <div class="form-group">
                     <label for="stats-month-select">Wybierz miesiąc:</label>
@@ -87,13 +87,13 @@
                 </div>
 
                 <div class="stats-cards">
-                    <div class="card">
+                    <div class="stat-box">
                         <h4>Suma paczek</h4>
                         <p id="stat-monthly-parcels">0</p>
                     </div>
-                    <div class="card">
+                    <div class="stat-box">
                         <h4>Wyliczona kwota</h4>
-                        <p id="stat-monthly-earnings">0.00 zł</p>
+                        <p id="stat-monthly-earnings" class="accent-text">0.00 zł</p>
                     </div>
                 </div>
 
@@ -104,7 +104,7 @@
                     <p>Odbiory: <span id="stat-pickups">0</span></p>
                 </div>
 
-                <hr>
+                <hr class="divider">
 
                 <!-- Przelewy -->
                 <div class="payout-section">
@@ -117,7 +117,7 @@
                         <label for="received-payout">Otrzymany przelew (zł):</label>
                         <input type="number" id="received-payout" step="0.01" placeholder="0.00">
                     </div>
-                    <button id="save-payout-btn" class="btn-save">Zapisz przelew</button>
+                    <button id="save-payout-btn" class="btn btn-save">Zapisz przelew</button>
                 </div>
             </section>
         </main>

@@ -8,10 +8,22 @@ const firebaseConfig = {
     appId: "1:439457783683:web:57a9353f58e2c42dd9a0b6"
 };
 
+// Inicjalizacja usług
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+const auth = firebase.auth();
 
-const CORRECT_PIN = "0609";
+// Zakodowany PIN ("0609") w algorytmie SHA-256 - nikt go nie odczyta z kodu JS!
+const PIN_HASH = "80f1350a41f64835695a43dbd2371b26c26f07fef7e066060c2bc957f891b979";
+
+// Funkcja pomocnicza do hashowania podanego PIN-u
+async function hashPin(pin) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(pin);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     const authModal = document.getElementById('auth-modal');
@@ -19,26 +31,41 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('login-form');
     const logoutBtn = document.getElementById('logout-btn');
 
-    if (sessionStorage.getItem('auth_ok') === 'true') {
-        showApp();
-    }
+    // Nasłuchiwanie stanu autoryzacji z Firebase
+    auth.onAuthStateChanged((user) => {
+        if (user && sessionStorage.getItem('auth_ok') === 'true') {
+            showApp();
+        } else {
+            showLogin();
+        }
+    });
 
     if (loginForm) {
-        loginForm.addEventListener('submit', (e) => {
+        loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const pin = document.getElementById('pin-input').value;
-            if (pin === CORRECT_PIN) {
-                sessionStorage.setItem('auth_ok', 'true');
-                showApp();
+            const inputPin = document.getElementById('pin-input').value;
+            const hashedInput = await hashPin(inputPin);
+
+            if (hashedInput === PIN_HASH) {
+                try {
+                    // Logowanie w Firebase Auth (Anonimowo) celem uzyskania tokenu dostępu do bazy
+                    await auth.signInAnonymously();
+                    sessionStorage.setItem('auth_ok', 'true');
+                    showApp();
+                } catch (error) {
+                    alert('Błąd autoryzacji Firebase: ' + error.message);
+                }
             } else {
                 alert('Błędny PIN!');
+                document.getElementById('pin-input').value = '';
             }
         });
     }
 
     if (logoutBtn) {
-        logoutBtn.addEventListener('click', () => {
+        logoutBtn.addEventListener('click', async () => {
             sessionStorage.removeItem('auth_ok');
+            await auth.signOut();
             location.reload();
         });
     }
@@ -49,12 +76,16 @@ document.addEventListener('DOMContentLoaded', () => {
         initApp();
     }
 
+    function showLogin() {
+        if (authModal) authModal.style.display = 'flex';
+        if (appContent) appContent.style.display = 'none';
+    }
+
     function initApp() {
         let currentDate = new Date();
         let selectedDateStr = formatDate(currentDate);
         let appData = { days: {}, payouts: {} };
 
-        // Obliczanie stawki za dzień
         function calculateDayRate(totalParcels, hasSecondShift = false) {
             const count = parseInt(totalParcels, 10) || 0;
             let rate = 0;
@@ -72,6 +103,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return rate;
         }
 
+        // Subskrypcja Firebase po autoryzacji
         db.collection('kurier_app').doc('main_data')
             .onSnapshot((doc) => {
                 if (doc.exists) {
@@ -84,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderStats();
                 populateMonthSelector();
             }, (err) => {
-                console.error("Błąd Firebase:", err);
+                console.error("Błąd braku uprawnień Firebase:", err);
             });
 
         function formatDate(d) {
@@ -204,7 +236,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 e.preventDefault();
 
                 if (!appData.days) appData.days = {};
-
                 const secondShiftCb = document.getElementById('second-shift');
 
                 appData.days[selectedDateStr] = {
@@ -217,7 +248,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 try {
                     await db.collection('kurier_app').doc('main_data').set(appData, { merge: true });
-                    alert('Zapisano w chmurze!');
+                    alert('Zapisano pomyślnie!');
                 } catch(err) {
                     alert('Błąd zapisu: ' + err.message);
                 }

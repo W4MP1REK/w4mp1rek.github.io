@@ -51,7 +51,13 @@ document.addEventListener('DOMContentLoaded', () => {
         let currentDate = new Date();
         let selectedDateStr = formatDate(currentDate);
         let appData = { days: {}, payouts: {} };
-        const rates = { address: 4.5, apm: 2.0, pudo: 2.5, pickups: 1.5 };
+
+        // Funkcja pomocnicza: oblicza stawkę za dzień na podstawie ŁĄCZNEJ liczby paczek
+        function calculateDayRate(totalParcels) {
+            if (totalParcels === 0) return 0;
+            if (totalParcels < 200) return 240;
+            return 270; // 200 paczek i więcej (w tym powyżej 300) -> 270 zł
+        }
 
         // Synchronizacja na żywo z chmurą Google
         db.collection('kurier_app').doc('main_data')
@@ -147,7 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const pick = parseInt(document.getElementById('pickups').value) || 0;
 
             const total = addr + apm + pudo + pick;
-            const rate = (addr * rates.address) + (apm * rates.apm) + (pudo * rates.pudo) + (pick * rates.pickups);
+            const rate = calculateDayRate(total);
 
             document.getElementById('daily-total-parcels').textContent = total;
             document.getElementById('daily-rate').textContent = `${rate.toFixed(2)} zł`;
@@ -194,6 +200,8 @@ document.addEventListener('DOMContentLoaded', () => {
         function populateMonthSelector() {
             const select = document.getElementById('stats-month-select');
             if (!select) return;
+
+            const currentVal = select.value;
             select.innerHTML = '';
 
             const months = new Set();
@@ -211,7 +219,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 select.appendChild(opt);
             });
 
-            select.addEventListener('change', renderStats);
+            if (currentVal && Array.from(months).includes(currentVal)) {
+                select.value = currentVal;
+            }
+
+            select.onchange = renderStats;
         }
 
         function renderStats() {
@@ -219,20 +231,29 @@ document.addEventListener('DOMContentLoaded', () => {
             const selectedMonth = select ? select.value : formatDate(new Date()).substring(0, 7);
 
             let mAddr = 0, mApm = 0, mPudo = 0, mPick = 0;
+            let mEarnings = 0;
 
             if (appData.days) {
                 Object.entries(appData.days).forEach(([date, d]) => {
                     if (date.startsWith(selectedMonth)) {
-                        mAddr += d.address || 0;
-                        mApm += d.apm || 0;
-                        mPudo += d.pudo || 0;
-                        mPick += d.pickups || 0;
+                        const addr = d.address || 0;
+                        const apm = d.apm || 0;
+                        const pudo = d.pudo || 0;
+                        const pick = d.pickups || 0;
+
+                        mAddr += addr;
+                        mApm += apm;
+                        mPudo += pudo;
+                        mPick += pick;
+
+                        // Obliczanie wygranej za dany dzień według łącznej ilości paczek
+                        const dayTotal = addr + apm + pudo + pick;
+                        mEarnings += calculateDayRate(dayTotal);
                     }
                 });
             }
 
             const mTotalParcels = mAddr + mApm + mPudo + mPick;
-            const mEarnings = (mAddr * rates.address) + (mApm * rates.apm) + (mPudo * rates.pudo) + (mPick * rates.pickups);
 
             document.getElementById('stat-monthly-earnings').textContent = `${mEarnings.toFixed(2)} zł`;
             document.getElementById('stat-monthly-parcels').textContent = mTotalParcels;

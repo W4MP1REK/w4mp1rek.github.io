@@ -103,8 +103,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 renderCalendar();
                 loadDayToForm(selectedDateStr);
-                renderStats();
                 populateMonthSelector();
+                renderStats();
             }, (err) => {
                 console.error("Błąd pobierania danych z Firebase:", err);
             });
@@ -147,7 +147,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             for (let day = 1; day <= totalDays; day++) {
-                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const mStr = String(month + 1).padStart(2, '0');
+                const dStr = String(day).padStart(2, '0');
+                const dateStr = `${year}-${mStr}-${dStr}`;
+                
                 const cell = document.createElement('div');
                 cell.className = 'calendar-day';
                 if (dateStr === selectedDateStr) cell.classList.add('selected');
@@ -166,11 +169,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
+        // TA FUNKCJA TERAZ JAWNIE ZERUJE POLA GDY BRAK DANYCH
         function loadDayToForm(dateStr) {
             const title = document.getElementById('selected-date-title');
             if (title) title.textContent = `Wybrany dzień: ${dateStr}`;
 
-            const dayData = (appData.days && appData.days[dateStr]) ? appData.days[dateStr] : { address: 0, apm: 0, pudo: 0, pickups: 0, secondShift: false };
+            const dayData = (appData.days && appData.days[dateStr]) 
+                ? appData.days[dateStr] 
+                : { address: 0, apm: 0, pudo: 0, pickups: 0, secondShift: false };
 
             const addrEl = document.getElementById('address');
             const apmEl = document.getElementById('apm');
@@ -178,11 +184,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const pickEl = document.getElementById('pickups');
             const secondShiftCheckbox = document.getElementById('second-shift');
 
-            if (addrEl) addrEl.value = dayData.address || 0;
-            if (apmEl) apmEl.value = dayData.apm || 0;
-            if (pudoEl) pudoEl.value = dayData.pudo || 0;
-            if (pickEl) pickEl.value = dayData.pickups || 0;
-            if (secondShiftCheckbox) secondShiftCheckbox.checked = !!dayData.secondShift;
+            if (addrEl) addrEl.value = dayData.address !== undefined ? dayData.address : 0;
+            if (apmEl) apmEl.value = dayData.apm !== undefined ? dayData.apm : 0;
+            if (pudoEl) pudoEl.value = dayData.pudo !== undefined ? dayData.pudo : 0;
+            if (pickEl) pickEl.value = dayData.pickups !== undefined ? dayData.pickups : 0;
+            if (secondShiftCheckbox) secondShiftCheckbox.checked = Boolean(dayData.secondShift);
 
             calculateDailyTotals();
         }
@@ -245,31 +251,30 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // KLIKNIĘCIE "POPRZEDNI MIESIĄC"
+        function updateMonthView() {
+            const year = currentDate.getFullYear();
+            const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+            selectedDateStr = `${year}-${month}-01`;
+
+            renderCalendar();
+            loadDayToForm(selectedDateStr);
+            populateMonthSelector();
+            renderStats();
+        }
+
         const prevBtn = document.getElementById('prev-month');
         if (prevBtn) {
             prevBtn.addEventListener('click', () => {
                 currentDate.setMonth(currentDate.getMonth() - 1);
-                // Ustawiamy zaznaczony dzień na 1. dzień nowego miesiąca
-                const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-                selectedDateStr = formatDate(firstDayOfMonth);
-                
-                renderCalendar();
-                loadDayToForm(selectedDateStr);
+                updateMonthView();
             });
         }
 
-        // KLIKNIĘCIE "NASTĘPNY MIESIĄC"
         const nextBtn = document.getElementById('next-month');
         if (nextBtn) {
             nextBtn.addEventListener('click', () => {
                 currentDate.setMonth(currentDate.getMonth() + 1);
-                // Ustawiamy zaznaczony dzień na 1. dzień nowego miesiąca
-                const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-                selectedDateStr = formatDate(firstDayOfMonth);
-
-                renderCalendar();
-                loadDayToForm(selectedDateStr);
+                updateMonthView();
             });
         }
 
@@ -277,7 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const select = document.getElementById('stats-month-select');
             if (!select) return;
 
-            const currentVal = select.value;
+            const visibleMonthStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
             select.innerHTML = '';
 
             const months = new Set();
@@ -285,8 +290,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 Object.keys(appData.days).forEach(d => months.add(d.substring(0, 7)));
             }
             
-            const currentM = formatDate(new Date()).substring(0, 7);
-            months.add(currentM);
+            months.add(visibleMonthStr);
 
             Array.from(months).sort().reverse().forEach(m => {
                 const opt = document.createElement('option');
@@ -295,16 +299,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 select.appendChild(opt);
             });
 
-            if (currentVal && Array.from(months).includes(currentVal)) {
-                select.value = currentVal;
-            }
-
+            select.value = visibleMonthStr;
             select.onchange = renderStats;
         }
 
         function renderStats() {
             const select = document.getElementById('stats-month-select');
-            const selectedMonth = select ? select.value : formatDate(new Date()).substring(0, 7);
+            const selectedMonth = select ? select.value : formatDate(currentDate).substring(0, 7);
 
             let mAddr = 0, mApm = 0, mPudo = 0, mPick = 0;
             let mEarnings = 0;
@@ -349,10 +350,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (calcInput) calcInput.value = `${mEarnings.toFixed(2)} zł`;
 
             const receivedInput = document.getElementById('received-payout');
-            if (receivedInput && appData.payouts && appData.payouts[selectedMonth]) {
-                receivedInput.value = appData.payouts[selectedMonth];
-            } else if (receivedInput) {
-                receivedInput.value = '';
+            if (receivedInput) {
+                if (appData.payouts && appData.payouts[selectedMonth] !== undefined) {
+                    receivedInput.value = appData.payouts[selectedMonth];
+                } else {
+                    receivedInput.value = '';
+                }
             }
         }
 
@@ -360,7 +363,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (savePayoutBtn) {
             savePayoutBtn.addEventListener('click', async () => {
                 const select = document.getElementById('stats-month-select');
-                const selectedMonth = select ? select.value : formatDate(new Date()).substring(0, 7);
+                const selectedMonth = select ? select.value : formatDate(currentDate).substring(0, 7);
                 const val = parseFloat(document.getElementById('received-payout').value) || 0;
 
                 if (!appData.payouts) appData.payouts = {};

@@ -8,13 +8,14 @@ const firebaseConfig = {
     appId: "1:439457783683:web:57a9353f58e2c42dd9a0b6"
 };
 
-// Inicjalizacja usług Firebase
+// Inicjalizacja usług Firebase (TYLKO FIRESTORE)
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
+
 const PIN_HASH = "80f1350a41f64835695a43dbd2371b26c26f07fef7e066060c2bc957f891b979";
 
-// Funkcja pomocnicza do generowania hasha SHA-256 z podanego PIN-u
+// Funkcja pomocnicza do szyfrowania PIN-u
 async function hashPin(pin) {
     const encoder = new TextEncoder();
     const data = encoder.encode(pin);
@@ -29,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('login-form');
     const logoutBtn = document.getElementById('logout-btn');
 
-    // Sprawdzanie stanu autoryzacji w sesji
+    // Sprawdzanie stanu sesji w przeglądarce
     if (sessionStorage.getItem('auth_ok') === 'true') {
         showApp();
     } else {
@@ -92,7 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return rate;
         }
 
-        // Subskrypcja bazy danych Firestore na żywo
+        // Subskrypcja bazy danych Firestore
         db.collection('kurier_app').doc('main_data')
             .onSnapshot((doc) => {
                 if (doc.exists) {

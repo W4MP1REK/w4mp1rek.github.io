@@ -29,7 +29,6 @@ document.addEventListener('DOMContentLoaded', () => {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            // Konwersja na string + usunięcie białych znaków (spacji)
             const inputPin = String(document.getElementById('pin-input').value).trim();
 
             try {
@@ -246,19 +245,31 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
+        // KLIKNIĘCIE "POPRZEDNI MIESIĄC"
         const prevBtn = document.getElementById('prev-month');
         if (prevBtn) {
             prevBtn.addEventListener('click', () => {
                 currentDate.setMonth(currentDate.getMonth() - 1);
+                // Ustawiamy zaznaczony dzień na 1. dzień nowego miesiąca
+                const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+                selectedDateStr = formatDate(firstDayOfMonth);
+                
                 renderCalendar();
+                loadDayToForm(selectedDateStr);
             });
         }
 
+        // KLIKNIĘCIE "NASTĘPNY MIESIĄC"
         const nextBtn = document.getElementById('next-month');
         if (nextBtn) {
             nextBtn.addEventListener('click', () => {
                 currentDate.setMonth(currentDate.getMonth() + 1);
+                // Ustawiamy zaznaczony dzień na 1. dzień nowego miesiąca
+                const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+                selectedDateStr = formatDate(firstDayOfMonth);
+
                 renderCalendar();
+                loadDayToForm(selectedDateStr);
             });
         }
 
@@ -340,6 +351,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const receivedInput = document.getElementById('received-payout');
             if (receivedInput && appData.payouts && appData.payouts[selectedMonth]) {
                 receivedInput.value = appData.payouts[selectedMonth];
+            } else if (receivedInput) {
+                receivedInput.value = '';
             }
         }
 

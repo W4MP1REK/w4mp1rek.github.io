@@ -3,137 +3,126 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Asystent Kuriera - Panel Dostaw</title>
+    <title>Aplikacja Kuriera</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Firebase SDK (v8) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 </head>
 <body>
 
-    <!-- MODAL LOGOWANIA PIN-EM -->
-    <div id="auth-modal" class="auth-card" style="max-width:350px; margin:80px auto; padding:25px; background:#fff; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1); text-align:center;">
-        <h2>Logowanie</h2>
-        <p style="color:#666; font-size:0.9rem; margin-bottom:15px;">Wprowadź PIN, aby uzyskać dostęp.</p>
-        <form id="login-form">
-            <input type="password" id="pin-input" placeholder="Wpisz PIN" required inputmode="numeric" class="form-input" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box;">
-            <button type="submit" class="btn btn-primary" style="width:100%; margin-top:12px; padding:10px; background:#2563eb; color:#fff; border:none; border-radius:6px; font-weight:600; cursor:pointer;">Zaloguj się</button>
-        </form>
+    <!-- Modal logowania -->
+    <div id="auth-modal" class="modal">
+        <div class="modal-content">
+            <h2>Podaj PIN</h2>
+            <form id="login-form">
+                <input type="password" id="pin-input" maxlength="4" placeholder="****" required>
+                <button type="submit">Zaloguj</button>
+            </form>
+        </div>
     </div>
 
-    <!-- GŁÓWNA APLIKACJA -->
-    <div id="app-content" style="display:none;">
-        <header class="app-header">
-            <div class="header-content">
-                <h1>📦 Asystent Kuriera</h1>
-                <button id="logout-btn" class="btn-logout" style="background:transparent; border:1px solid #fff; color:#fff; padding:5px 12px; border-radius:6px; cursor:pointer;">Wyloguj</button>
-            </div>
+    <!-- Główna zawartość aplikacji -->
+    <div id="app-content" style="display: none;">
+        <header>
+            <h1>Rozliczenia Kurierskie</h1>
+            <button id="logout-btn">Wyloguj</button>
         </header>
 
-        <main class="app-container">
-            <!-- KALENDARZ -->
-            <section class="card calendar-section">
+        <main class="container">
+            <!-- Nawigacja Kalendarza -->
+            <section class="calendar-section">
                 <div class="calendar-header">
-                    <button id="prev-month" class="btn-icon">&lt;</button>
-                    <h2 id="calendar-month-year">Ładowanie...</h2>
-                    <button id="next-month" class="btn-icon">&gt;</button>
+                    <button id="prev-month">&lt;</button>
+                    <h2 id="calendar-month-year"></h2>
+                    <button id="next-month">&gt;</button>
                 </div>
                 <div id="calendar-grid" class="calendar-grid"></div>
             </section>
 
-            <!-- FORMULARZ DZIENNY -->
-            <section class="card form-section">
-                <h3 id="selected-date-title">Wybrany dzień: --.--.----</h3>
+            <!-- Formularz Dnia -->
+            <section class="form-section">
+                <h3 id="selected-date-title">Wybrany dzień: -</h3>
                 <form id="daily-form">
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="address">🏠 Adres</label>
-                            <input type="number" id="address" min="0" value="0" class="form-input" inputmode="numeric">
-                        </div>
-                        <div class="form-group">
-                            <label for="apm">📦 APM (Paczkomaty)</label>
-                            <input type="number" id="apm" min="0" value="0" class="form-input" inputmode="numeric">
-                        </div>
-                        <div class="form-group">
-                            <label for="pudo">🏪 PUDO (Punkty)</label>
-                            <input type="number" id="pudo" min="0" value="0" class="form-input" inputmode="numeric">
-                        </div>
-                        <div class="form-group">
-                            <label for="pickups">📤 Odbiory od klientów</label>
-                            <input type="number" id="pickups" min="0" value="0" class="form-input" inputmode="numeric">
-                        </div>
+                    <div class="form-group">
+                        <label for="address">Adres:</label>
+                        <input type="number" id="address" min="0" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="apm">APM (Paczkomaty):</label>
+                        <input type="number" id="apm" min="0" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="pudo">PUDO (Punkty):</label>
+                        <input type="number" id="pudo" min="0" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="pickups">Odbiory:</label>
+                        <input type="number" id="pickups" min="0" value="0">
                     </div>
 
-                    <div class="summary-box">
-                        <div class="summary-item">
-                            <span>Suma paczek:</span>
-                            <strong id="daily-total-parcels">0</strong>
-                        </div>
-                        <div class="summary-item highlight">
-                            <span>Stawka dzienna:</span>
-                            <strong id="daily-rate">0 zł</strong>
-                        </div>
+                    <!-- Nowa opcja: Druga zmiana -->
+                    <div class="form-group" style="margin-top: 15px;">
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: bold;">
+                            <input type="checkbox" id="second-shift" style="width: 20px; height: 20px;">
+                            Druga zmiana (+150 zł)
+                        </label>
                     </div>
 
-                    <button type="submit" class="btn btn-success">Zapisz dzień</button>
+                    <div class="daily-summary">
+                        <p>Łącznie paczek: <strong id="daily-total-parcels">0</strong></p>
+                        <p>Stawka za dzień: <strong id="daily-rate">0.00 zł</strong></p>
+                    </div>
+
+                    <button type="submit" class="btn-save">Zapisz dzień</button>
                 </form>
             </section>
 
-            <!-- PANEL STATYSTYK -->
-            <section class="card stats-section">
-                <h2>📊 Panel Statystyk</h2>
-                
-                <div class="month-selector-wrapper">
-                    <label for="stats-month-select">Wybierz miesiąc do analizy:</label>
-                    <select id="stats-month-select" class="form-select"></select>
+            <!-- Statystyki Miesięczne -->
+            <section class="stats-section">
+                <h3>Statystyki Miesięczne</h3>
+                <div class="form-group">
+                    <label for="stats-month-select">Wybierz miesiąc:</label>
+                    <select id="stats-month-select"></select>
                 </div>
 
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <span class="stat-label">Bieżący Tydzień (Pn-Nd)</span>
-                        <span class="stat-value" id="stat-weekly-parcels">0 paczek</span>
+                <div class="stats-cards">
+                    <div class="card">
+                        <h4>Suma paczek</h4>
+                        <p id="stat-monthly-parcels">0</p>
                     </div>
-                    <div class="stat-card primary">
-                        <span class="stat-label">Zarobek w Miesiącu</span>
-                        <span class="stat-value" id="stat-monthly-earnings">0 zł</span>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-label">Łącznie Paczek</span>
-                        <span class="stat-value" id="stat-monthly-parcels">0</span>
+                    <div class="card">
+                        <h4>Wyliczona kwota</h4>
+                        <p id="stat-monthly-earnings">0.00 zł</p>
                     </div>
                 </div>
 
-                <div class="breakdown-box">
-                    <h4>Podział paczek w miesiącu:</h4>
-                    <div class="breakdown-grid">
-                        <div>🏠 Adres: <strong id="stat-address">0</strong></div>
-                        <div>📦 APM: <strong id="stat-apm">0</strong></div>
-                        <div>🏪 PUDO: <strong id="stat-pudo">0</strong></div>
-                        <div>📤 Odbiory: <strong id="stat-pickups">0</strong></div>
-                    </div>
+                <div class="stats-details">
+                    <p>Adres: <span id="stat-address">0</span></p>
+                    <p>APM: <span id="stat-apm">0</span></p>
+                    <p>PUDO: <span id="stat-pudo">0</span></p>
+                    <p>Odbiory: <span id="stat-pickups">0</span></p>
                 </div>
 
-                <!-- MODUŁ WERYFIKACJI WYPŁATY -->
-                <div class="card settlement-box">
-                    <h3>⚖️ Rozliczenie Wypłaty</h3>
-                    <div class="settlement-grid">
-                        <div class="form-group">
-                            <label>Zarobek wyliczony:</label>
-                            <input type="text" id="calculated-payout" class="form-input" readonly value="0 zł">
-                        </div>
-                        <div class="form-group">
-                            <label for="received-payout">Kwota przelewu (zł):</label>
-                            <input type="number" id="received-payout" step="0.01" placeholder="np. 4500" class="form-input" inputmode="decimal">
-                        </div>
+                <hr>
+
+                <!-- Przelewy -->
+                <div class="payout-section">
+                    <h4>Rozliczenie Przelewu</h4>
+                    <div class="form-group">
+                        <label>Wyliczone wynagrodzenie:</label>
+                        <input type="text" id="calculated-payout" readonly>
                     </div>
-                    <button type="button" id="save-payout-btn" class="btn btn-secondary">Zapisz kwotę przelewu</button>
+                    <div class="form-group">
+                        <label for="received-payout">Otrzymany przelew (zł):</label>
+                        <input type="number" id="received-payout" step="0.01" placeholder="0.00">
+                    </div>
+                    <button id="save-payout-btn" class="btn-save">Zapisz przelew</button>
                 </div>
             </section>
         </main>
     </div>
 
-    <!-- Pakiety SDK Firebase -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

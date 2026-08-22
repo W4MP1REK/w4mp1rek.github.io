@@ -1,4 +1,4 @@
-// Konfiguracja Firebase pobrana z Twojego panelu
+// Konfiguracja Firebase
 const firebaseConfig = {
     apiKey: "AIzaSyBsNwt33Z3XOyVmBAY6kqlDmLXTwjM-vYY",
     authDomain: "kurier-app-6ac5a.firebaseapp.com",
@@ -11,7 +11,6 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// Hasło PIN do logowania: 0609
 const CORRECT_PIN = "0609";
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -24,25 +23,29 @@ document.addEventListener('DOMContentLoaded', () => {
         showApp();
     }
 
-    loginForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const pin = document.getElementById('pin-input').value;
-        if (pin === CORRECT_PIN) {
-            sessionStorage.setItem('auth_ok', 'true');
-            showApp();
-        } else {
-            alert('Błędny PIN!');
-        }
-    });
+    if (loginForm) {
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const pin = document.getElementById('pin-input').value;
+            if (pin === CORRECT_PIN) {
+                sessionStorage.setItem('auth_ok', 'true');
+                showApp();
+            } else {
+                alert('Błędny PIN!');
+            }
+        });
+    }
 
-    logoutBtn.addEventListener('click', () => {
-        sessionStorage.removeItem('auth_ok');
-        location.reload();
-    });
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            sessionStorage.removeItem('auth_ok');
+            location.reload();
+        });
+    }
 
     function showApp() {
-        authModal.style.display = 'none';
-        appContent.style.display = 'block';
+        if (authModal) authModal.style.display = 'none';
+        if (appContent) appContent.style.display = 'block';
         initApp();
     }
 
@@ -51,7 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let selectedDateStr = formatDate(currentDate);
         let appData = { days: {}, payouts: {} };
 
-        // Obliczanie stawki za dzień (progi + ewentualna 2. zmiana)
+        // Obliczanie stawki za dzień
         function calculateDayRate(totalParcels, hasSecondShift = false) {
             const count = parseInt(totalParcels, 10) || 0;
             let rate = 0;
@@ -81,7 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderStats();
                 populateMonthSelector();
             }, (err) => {
-                console.error("Błąd synchronizacji Firebase:", err);
+                console.error("Błąd Firebase:", err);
             });
 
         function formatDate(d) {
@@ -128,7 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (dateStr === selectedDateStr) cell.classList.add('selected');
 
                 const hasData = appData.days && appData.days[dateStr];
-                cell.innerHTML = `<span>${day}</span>${hasData ? '<div class="dot" style="width:6px;height:6px;background:#10b981;border-radius:50%;margin:2px auto 0;"></div>' : ''}`;
+                cell.innerHTML = `<span>${day}</span>${hasData ? '<div style="width:6px;height:6px;background:#10b981;border-radius:50%;margin-top:3px;"></div>' : ''}`;
 
                 cell.addEventListener('click', () => {
                     document.querySelectorAll('.calendar-day').forEach(c => c.classList.remove('selected'));
@@ -147,24 +150,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const dayData = (appData.days && appData.days[dateStr]) ? appData.days[dateStr] : { address: 0, apm: 0, pudo: 0, pickups: 0, secondShift: false };
 
-            document.getElementById('address').value = dayData.address || 0;
-            document.getElementById('apm').value = dayData.apm || 0;
-            document.getElementById('pudo').value = dayData.pudo || 0;
-            document.getElementById('pickups').value = dayData.pickups || 0;
-
+            const addrEl = document.getElementById('address');
+            const apmEl = document.getElementById('apm');
+            const pudoEl = document.getElementById('pudo');
+            const pickEl = document.getElementById('pickups');
             const secondShiftCheckbox = document.getElementById('second-shift');
-            if (secondShiftCheckbox) {
-                secondShiftCheckbox.checked = !!dayData.secondShift;
-            }
+
+            if (addrEl) addrEl.value = dayData.address || 0;
+            if (apmEl) apmEl.value = dayData.apm || 0;
+            if (pudoEl) pudoEl.value = dayData.pudo || 0;
+            if (pickEl) pickEl.value = dayData.pickups || 0;
+            if (secondShiftCheckbox) secondShiftCheckbox.checked = !!dayData.secondShift;
 
             calculateDailyTotals();
         }
 
         function calculateDailyTotals() {
-            const addr = parseInt(document.getElementById('address').value, 10) || 0;
-            const apm = parseInt(document.getElementById('apm').value, 10) || 0;
-            const pudo = parseInt(document.getElementById('pudo').value, 10) || 0;
-            const pick = parseInt(document.getElementById('pickups').value, 10) || 0;
+            const addr = parseInt(document.getElementById('address')?.value, 10) || 0;
+            const apm = parseInt(document.getElementById('apm')?.value, 10) || 0;
+            const pudo = parseInt(document.getElementById('pudo')?.value, 10) || 0;
+            const pick = parseInt(document.getElementById('pickups')?.value, 10) || 0;
 
             const secondShiftCheckbox = document.getElementById('second-shift');
             const hasSecondShift = secondShiftCheckbox ? secondShiftCheckbox.checked : false;
@@ -203,10 +208,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const secondShiftCb = document.getElementById('second-shift');
 
                 appData.days[selectedDateStr] = {
-                    address: parseInt(document.getElementById('address').value, 10) || 0,
-                    apm: parseInt(document.getElementById('apm').value, 10) || 0,
-                    pudo: parseInt(document.getElementById('pudo').value, 10) || 0,
-                    pickups: parseInt(document.getElementById('pickups').value, 10) || 0,
+                    address: parseInt(document.getElementById('address')?.value, 10) || 0,
+                    apm: parseInt(document.getElementById('apm')?.value, 10) || 0,
+                    pudo: parseInt(document.getElementById('pudo')?.value, 10) || 0,
+                    pickups: parseInt(document.getElementById('pickups')?.value, 10) || 0,
                     secondShift: secondShiftCb ? secondShiftCb.checked : false
                 };
 
@@ -219,15 +224,21 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        document.getElementById('prev-month').addEventListener('click', () => {
-            currentDate.setMonth(currentDate.getMonth() - 1);
-            renderCalendar();
-        });
+        const prevBtn = document.getElementById('prev-month');
+        if (prevBtn) {
+            prevBtn.addEventListener('click', () => {
+                currentDate.setMonth(currentDate.getMonth() - 1);
+                renderCalendar();
+            });
+        }
 
-        document.getElementById('next-month').addEventListener('click', () => {
-            currentDate.setMonth(currentDate.getMonth() + 1);
-            renderCalendar();
-        });
+        const nextBtn = document.getElementById('next-month');
+        if (nextBtn) {
+            nextBtn.addEventListener('click', () => {
+                currentDate.setMonth(currentDate.getMonth() + 1);
+                renderCalendar();
+            });
+        }
 
         function populateMonthSelector() {
             const select = document.getElementById('stats-month-select');
@@ -287,12 +298,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const mTotalParcels = mAddr + mApm + mPudo + mPick;
 
-            document.getElementById('stat-monthly-earnings').textContent = `${mEarnings.toFixed(2)} zł`;
-            document.getElementById('stat-monthly-parcels').textContent = mTotalParcels;
-            document.getElementById('stat-address').textContent = mAddr;
-            document.getElementById('stat-apm').textContent = mApm;
-            document.getElementById('stat-pudo').textContent = mPudo;
-            document.getElementById('stat-pickups').textContent = mPick;
+            const statEarnings = document.getElementById('stat-monthly-earnings');
+            const statParcels = document.getElementById('stat-monthly-parcels');
+            const statAddr = document.getElementById('stat-address');
+            const statApm = document.getElementById('stat-apm');
+            const statPudo = document.getElementById('stat-pudo');
+            const statPick = document.getElementById('stat-pickups');
+
+            if (statEarnings) statEarnings.textContent = `${mEarnings.toFixed(2)} zł`;
+            if (statParcels) statParcels.textContent = mTotalParcels;
+            if (statAddr) statAddr.textContent = mAddr;
+            if (statApm) statApm.textContent = mApm;
+            if (statPudo) statPudo.textContent = mPudo;
+            if (statPick) statPick.textContent = mPick;
 
             const calcInput = document.getElementById('calculated-payout');
             if (calcInput) calcInput.value = `${mEarnings.toFixed(2)} zł`;

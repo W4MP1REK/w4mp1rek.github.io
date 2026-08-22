@@ -8,15 +8,13 @@ const firebaseConfig = {
     appId: "1:439457783683:web:57a9353f58e2c42dd9a0b6"
 };
 
-// Inicjalizacja usług
+// Inicjalizacja usług Firebase
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
-const auth = firebase.auth();
 
-// Zakodowany PIN ("0609") w algorytmie SHA-256
 const PIN_HASH = "80f1350a41f64835695a43dbd2371b26c26f07fef7e066060c2bc957f891b979";
 
-// Funkcja pomocnicza do hashowania podanego PIN-u
+// Funkcja pomocnicza do generowania hasha SHA-256 z podanego PIN-u
 async function hashPin(pin) {
     const encoder = new TextEncoder();
     const data = encoder.encode(pin);
@@ -31,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('login-form');
     const logoutBtn = document.getElementById('logout-btn');
 
-    // Sprawdzanie stanu sesji przy ładowaniu
+    // Sprawdzanie stanu autoryzacji w sesji
     if (sessionStorage.getItem('auth_ok') === 'true') {
         showApp();
     } else {
@@ -45,13 +43,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const hashedInput = await hashPin(inputPin);
 
             if (hashedInput === PIN_HASH) {
-                try {
-                    if (!auth.currentUser) {
-                        await auth.signInAnonymously();
-                    }
-                } catch (error) {
-                    console.warn("Firebase Auth Warning:", error.message);
-                }
                 sessionStorage.setItem('auth_ok', 'true');
                 showApp();
             } else {
@@ -62,13 +53,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (logoutBtn) {
-        logoutBtn.addEventListener('click', async () => {
+        logoutBtn.addEventListener('click', () => {
             sessionStorage.removeItem('auth_ok');
-            try {
-                await auth.signOut();
-            } catch (e) {
-                console.warn(e);
-            }
             location.reload();
         });
     }
@@ -106,7 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return rate;
         }
 
-        // Subskrypcja Firebase z automatycznym odczytem danych
+        // Subskrypcja bazy danych Firestore na żywo
         db.collection('kurier_app').doc('main_data')
             .onSnapshot((doc) => {
                 if (doc.exists) {

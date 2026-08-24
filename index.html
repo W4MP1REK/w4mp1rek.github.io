@@ -3,151 +3,154 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Asystent Kuriera - Panel Dostaw</title>
-    <link rel="stylesheet" href="style.css?v=3">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Aplikacja Kuriera</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Firebase App & Firestore SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 </head>
 <body>
 
-    <!-- MODAL LOGOWANIA PIN-EM -->
-    <div id="auth-modal" class="auth-wrapper">
-        <div class="auth-card">
-            <h2>📦 Logowanie</h2>
-            <p class="auth-subtitle">Wprowadź PIN, aby uzyskać dostęp.</p>
+    <!-- Modal logowania PIN -->
+    <div id="auth-modal" class="modal">
+        <div class="modal-content">
+            <h2>Podaj PIN</h2>
             <form id="login-form">
-                <input type="password" id="pin-input" placeholder="Wpisz PIN" required inputmode="numeric" class="form-input">
-                <button type="submit" class="btn btn-primary">Zaloguj się</button>
+                <input type="password" id="pin-input" placeholder="Wpisz PIN" required autofocus>
+                <button type="submit">Zaloguj</button>
             </form>
         </div>
     </div>
 
-    <!-- GŁÓWNA APLIKACJA -->
-    <div id="app-content" style="display:none;">
-        <header class="app-header">
-            <div class="header-content">
-                <h1>📦 Asystent Kuriera</h1>
-                <button id="logout-btn" class="btn-logout">Wyloguj</button>
-            </div>
+    <!-- Główna treść aplikacji -->
+    <div id="app-content" style="display: none;">
+        <header>
+            <h1>Panel Kuriera</h1>
+            <button id="logout-btn">Wyloguj</button>
         </header>
 
-        <main class="app-container">
-            <!-- KALENDARZ -->
-            <section class="card calendar-section">
+        <main class="container">
+            <!-- Sekcja Kalendarza -->
+            <section class="card">
                 <div class="calendar-header">
-                    <button id="prev-month" class="btn-icon">&lt;</button>
-                    <h2 id="calendar-month-year">Ładowanie...</h2>
-                    <button id="next-month" class="btn-icon">&gt;</button>
+                    <button id="prev-month">&lt;</button>
+                    <h2 id="calendar-month-year">Miesiąc Rok</h2>
+                    <button id="next-month">&gt;</button>
                 </div>
                 <div id="calendar-grid" class="calendar-grid"></div>
             </section>
 
-            <!-- FORMULARZ DZIENNY -->
-            <section class="card form-section">
-                <h3 id="selected-date-title">Wybrany dzień: --.--.----</h3>
+            <!-- Sekcja Formularza Dziennego -->
+            <section class="card">
+                <h2 id="selected-date-title">Wybrany dzień: --</h2>
+                
                 <form id="daily-form">
-                    <div class="form-grid">
-                        <div class="form-group">
-                            <label for="address">🏠 Adres</label>
-                            <input type="number" id="address" min="0" value="0" class="form-input" inputmode="numeric">
-                        </div>
-                        <div class="form-group">
-                            <label for="apm">📦 APM (Paczkomaty)</label>
-                            <input type="number" id="apm" min="0" value="0" class="form-input" inputmode="numeric">
-                        </div>
-                        <div class="form-group">
-                            <label for="pudo">🏪 PUDO (Punkty)</label>
-                            <input type="number" id="pudo" min="0" value="0" class="form-input" inputmode="numeric">
-                        </div>
-                        <div class="form-group">
-                            <label for="pickups">📤 Odbiory od klientów</label>
-                            <input type="number" id="pickups" min="0" value="0" class="form-input" inputmode="numeric">
-                        </div>
+                    <h3>Pierwsza zmiana</h3>
+                    <div class="form-group">
+                        <label>Doręczenia Adres:</label>
+                        <input type="number" id="address" min="0" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Doręczenia APM:</label>
+                        <input type="number" id="apm" min="0" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Doręczenia PUDO:</label>
+                        <input type="number" id="pudo" min="0" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Odbiory (Pickups):</label>
+                        <input type="number" id="pickups" min="0" value="0">
                     </div>
 
-                    <!-- Druga zmiana -->
-                    <div class="form-group checkbox-group">
-                        <label class="checkbox-label">
-                            <input type="checkbox" id="second-shift">
-                            <span>🌙 Druga zmiana (+150 zł)</span>
+                    <hr style="margin: 20px 0; border: 0; border-top: 1px solid #e5e7eb;">
+
+                    <h3>Druga zmiana</h3>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="second-shift"> Miałem drugą zmianę
                         </label>
+                    </div>
+                    
+                    <div id="second-shift-details" style="display: none; padding-left: 15px; border-left: 3px solid #10b981;">
+                        <div class="form-group">
+                            <label>Doręczenia Adres (2. zmiana):</label>
+                            <input type="number" id="second-address" min="0" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Doręczenia APM (2. zmiana):</label>
+                            <input type="number" id="second-apm" min="0" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Odbiory (2. zmiana):</label>
+                            <input type="number" id="second-pickups" min="0" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Stawka za 2. zmianę (zł):</label>
+                            <input type="number" id="second-shift-rate" min="0" step="0.01" value="150">
+                        </div>
                     </div>
 
                     <div class="summary-box">
-                        <div class="summary-item">
-                            <span>Suma paczek:</span>
-                            <strong id="daily-total-parcels">0</strong>
-                        </div>
-                        <div class="summary-item highlight">
-                            <span>Stawka dzienna:</span>
-                            <strong id="daily-rate">0 zł</strong>
-                        </div>
+                        <p>Łącznie paczek dzisiaj: <strong id="daily-total-parcels">0</strong></p>
+                        <p>Zarobek dzisiaj: <strong id="daily-rate">0.00 zł</strong></p>
                     </div>
 
-                    <button type="submit" class="btn btn-success">Zapisz dzień</button>
+                    <button type="submit" class="btn-primary">Zapisz dzień</button>
                 </form>
             </section>
 
-            <!-- PANEL STATYSTYK -->
-            <section class="card stats-section">
-                <h2>📊 Panel Statystyk</h2>
-                
-                <div class="month-selector-wrapper">
-                    <label for="stats-month-select">Wybierz miesiąc do analizy:</label>
-                    <select id="stats-month-select" class="form-select"></select>
+            <!-- Sekcja Statystyk Miesięcznych -->
+            <section class="card">
+                <h2>Statystyki Miesięczne</h2>
+                <div class="form-group">
+                    <label>Wybierz miesiąc:</label>
+                    <select id="stats-month-select"></select>
                 </div>
 
                 <div class="stats-grid">
-                    <div class="stat-card">
-                        <span class="stat-label">Bieżący Tydzień (Pn-Nd)</span>
-                        <span class="stat-value" id="stat-weekly-parcels">0 paczek</span>
+                    <div class="stat-item">
+                        <span>Zarobek:</span>
+                        <strong id="stat-monthly-earnings">0.00 zł</strong>
                     </div>
-                    <div class="stat-card primary">
-                        <span class="stat-label">Zarobek w Miesiącu</span>
-                        <span class="stat-value" id="stat-monthly-earnings">0 zł</span>
+                    <div class="stat-item">
+                        <span>Suma paczek:</span>
+                        <strong id="stat-monthly-parcels">0</strong>
                     </div>
-                    <div class="stat-card">
-                        <span class="stat-label">Łącznie Paczek</span>
-                        <span class="stat-value" id="stat-monthly-parcels">0</span>
+                    <div class="stat-item">
+                        <span>Adres:</span>
+                        <strong id="stat-address">0</strong>
+                    </div>
+                    <div class="stat-item">
+                        <span>APM:</span>
+                        <strong id="stat-apm">0</strong>
+                    </div>
+                    <div class="stat-item">
+                        <span>PUDO:</span>
+                        <strong id="stat-pudo">0</strong>
+                    </div>
+                    <div class="stat-item">
+                        <span>Odbiory:</span>
+                        <strong id="stat-pickups">0</strong>
                     </div>
                 </div>
 
-                <div class="breakdown-box">
-                    <h4>Podział paczek w miesiącu:</h4>
-                    <div class="breakdown-grid">
-                        <div>🏠 Adres: <strong id="stat-address">0</strong></div>
-                        <div>📦 APM: <strong id="stat-apm">0</strong></div>
-                        <div>🏪 PUDO: <strong id="stat-pudo">0</strong></div>
-                        <div>📤 Odbiory: <strong id="stat-pickups">0</strong></div>
-                    </div>
-                </div>
+                <hr style="margin: 20px 0; border: 0; border-top: 1px solid #e5e7eb;">
 
-                <!-- MODUŁ WERYFIKACJI WYPŁATY -->
-                <div class="card settlement-box">
-                    <h3>⚖️ Rozliczenie Wypłaty</h3>
-                    <div class="settlement-grid">
-                        <div class="form-group">
-                            <label>Zarobek wyliczony:</label>
-                            <input type="text" id="calculated-payout" class="form-input" readonly value="0 zł">
-                        </div>
-                        <div class="form-group">
-                            <label for="received-payout">Kwota przelewu (zł):</label>
-                            <input type="number" id="received-payout" step="0.01" placeholder="np. 4500" class="form-input" inputmode="decimal">
-                        </div>
-                    </div>
-                    <button type="button" id="save-payout-btn" class="btn btn-secondary">Zapisz kwotę przelewu</button>
+                <h3>Przelew</h3>
+                <div class="form-group">
+                    <label>Wyliczona kwota:</label>
+                    <input type="text" id="calculated-payout" readonly>
                 </div>
+                <div class="form-group">
+                    <label>Otrzymany przelew (zł):</label>
+                    <input type="number" id="received-payout" step="0.01" placeholder="Wpisz kwotę">
+                </div>
+                <button id="save-payout-btn" class="btn-primary">Zapisz przelew</button>
             </section>
         </main>
     </div>
 
-    <!-- Pakiety SDK Firebase -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="script.js"></script>
-    <!-- Dodać bibliotekę Auth tuż obok pozostałych skryptów Firebase -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 </body>
 </html>

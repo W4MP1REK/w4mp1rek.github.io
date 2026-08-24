@@ -1,17 +1,17 @@
-<!DOCTYPE html>
+<!--<!DOCTYPE html>
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aplikacja Kuriera</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Firebase App & Firestore SDKs -->
+     Firebase App & Firestore SDKs
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 </head>
 <body>
 
-    <!-- Modal logowania PIN -->
+    
     <div id="auth-modal" class="modal">
         <div class="modal-content">
             <h2>Podaj PIN</h2>
@@ -22,7 +22,7 @@
         </div>
     </div>
 
-    <!-- Główna treść aplikacji -->
+    <!-- Główna treść aplikacji 
     <div id="app-content" style="display: none;">
         <header>
             <h1>Panel Kuriera</h1>
@@ -30,7 +30,7 @@
         </header>
 
         <main class="container">
-            <!-- Sekcja Kalendarza -->
+            <!-- Sekcja Kalendarza 
             <section class="card">
                 <div class="calendar-header">
                     <button id="prev-month">&lt;</button>
@@ -40,7 +40,7 @@
                 <div id="calendar-grid" class="calendar-grid"></div>
             </section>
 
-            <!-- Sekcja Formularza Dziennego -->
+            <!-- Sekcja Formularza Dziennego -
             <section class="card">
                 <h2 id="selected-date-title">Wybrany dzień: --</h2>
                 
@@ -100,7 +100,7 @@
                 </form>
             </section>
 
-            <!-- Sekcja Statystyk Miesięcznych -->
+            <!-- Sekcja Statystyk Miesięcznych 
             <section class="card">
                 <h2>Statystyki Miesięczne</h2>
                 <div class="form-group">
@@ -145,8 +145,150 @@
                 <div class="form-group">
                     <label>Otrzymany przelew (zł):</label>
                     <input type="number" id="received-payout" step="0.01" placeholder="Wpisz kwotę">
+                </div
+                -->
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikacja Kuriera</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+</head>
+<body>
+
+    <div id="auth-modal" class="modal">
+        <div class="modal-content">
+            <h2>Podaj PIN</h2>
+            <form id="login-form">
+                <input type="password" id="pin-input" placeholder="Wpisz PIN" required autofocus>
+                <button type="submit">Zaloguj</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="app-content" style="display: none;">
+        <header>
+            <h1>Panel Kuriera</h1>
+            <button id="logout-btn">Wyloguj</button>
+        </header>
+
+        <main class="container">
+            <section class="card">
+                <div class="calendar-header">
+                    <button id="prev-month">&lt;</button>
+                    <h2 id="calendar-month-year">Miesiąc Rok</h2>
+                    <button id="next-month">&gt;</button>
                 </div>
-                <button id="save-payout-btn" class="btn-primary">Zapisz przelew</button>
+                <div id="calendar-grid" class="calendar-grid"></div>
+            </section>
+
+            <section class="card">
+                <h2 id="selected-date-title">Wybrany dzień: --</h2>
+                
+                <form id="daily-form">
+                    <h3>Pierwsza zmiana</h3>
+                    <div class="form-group">
+                        <label>Doręczenia Adres:</label>
+                        <input type="number" id="address" min="0" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Doręczenia APM:</label>
+                        <input type="number" id="apm" min="0" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Doręczenia PUDO:</label>
+                        <input type="number" id="pudo" min="0" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Odbiory (Pickups):</label>
+                        <input type="number" id="pickups" min="0" value="0">
+                    </div>
+
+                    <hr style="margin: 20px 0; border: 0; border-top: 1px solid var(--border-color);">
+
+                    <h3>Druga zmiana</h3>
+                    <div class="form-group" style="flex-direction: row; align-items: center; gap: 10px;">
+                        <input type="checkbox" id="second-shift">
+                        <label for="second-shift" style="cursor: pointer; color: var(--text-main); font-weight: 600;">Miałem drugą zmianę</label>
+                    </div>
+                    
+                    <div id="second-shift-details" style="display: none; padding-left: 10px; border-left: 3px solid var(--accent); margin-top: 10px;">
+                        <div class="form-group">
+                            <label>Doręczenia Adres (2. zmiana):</label>
+                            <input type="number" id="second-address" min="0" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Doręczenia APM (2. zmiana):</label>
+                            <input type="number" id="second-apm" min="0" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Odbiory (2. zmiana):</label>
+                            <input type="number" id="second-pickups" min="0" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Stawka za 2. zmianę (zł):</label>
+                            <input type="number" id="second-shift-rate" min="0" step="0.01" value="180">
+                        </div>
+                    </div>
+
+                    <div class="summary-box" style="margin-top: 20px;">
+                        <p>Łącznie paczek: <strong id="daily-total-parcels">0</strong></p>
+                        <p>Zarobek dzisiaj: <strong id="daily-rate">0.00 zł</strong></p>
+                    </div>
+
+                    <button type="submit" style="margin-top: 15px;">Zapisz dzień</button>
+                </form>
+            </section>
+
+            <section class="card">
+                <h2>Statystyki Miesięczne</h2>
+                <div class="form-group">
+                    <label>Wybierz miesiąc:</label>
+                    <select id="stats-month-select"></select>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span>Zarobek:</span>
+                        <strong id="stat-monthly-earnings">0.00 zł</strong>
+                    </div>
+                    <div class="stat-item">
+                        <span>Suma paczek:</span>
+                        <strong id="stat-monthly-parcels">0</strong>
+                    </div>
+                    <div class="stat-item">
+                        <span>Adres:</span>
+                        <strong id="stat-address">0</strong>
+                    </div>
+                    <div class="stat-item">
+                        <span>APM:</span>
+                        <strong id="stat-apm">0</strong>
+                    </div>
+                    <div class="stat-item">
+                        <span>PUDO:</span>
+                        <strong id="stat-pudo">0</strong>
+                    </div>
+                    <div class="stat-item">
+                        <span>Odbiory:</span>
+                        <strong id="stat-pickups">0</strong>
+                    </div>
+                </div>
+
+                <hr style="margin: 20px 0; border: 0; border-top: 1px solid var(--border-color);">
+
+                <h3>Przelew</h3>
+                <div class="form-group">
+                    <label>Wyliczona kwota:</label>
+                    <input type="text" id="calculated-payout" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Otrzymany przelew (zł):</label>
+                    <input type="number" id="received-payout" step="0.01" placeholder="Wpisz kwotę">
+                </div>
+                <button id="save-payout-btn">Zapisz przelew</button>
             </section>
         </main>
     </div>

@@ -18,7 +18,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('login-form');
     const logoutBtn = document.getElementById('logout-btn');
 
-    // Sprawdzanie stanu sesji
     if (sessionStorage.getItem('auth_ok') === 'true') {
         showApp();
     } else {
@@ -28,15 +27,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
             const inputPin = String(document.getElementById('pin-input').value).trim();
 
             try {
                 const doc = await db.collection('kurier_app').doc('settings').get();
-                
                 if (doc.exists && doc.data().pin !== undefined) {
                     const dbPin = String(doc.data().pin).trim();
-
                     if (inputPin === dbPin) {
                         sessionStorage.setItem('auth_ok', 'true');
                         showApp();
@@ -76,8 +72,9 @@ document.addEventListener('DOMContentLoaded', () => {
         let selectedDateStr = formatDate(currentDate);
         let appData = { days: {}, payouts: {} };
 
-        function calculateDayRate(totalParcels, hasSecondShift = false) {
-            const count = parseInt(totalParcels, 10) || 0;
+        // Progi naliczane wyłącznie od 1. zmiany. 2. zmiana dodaje ręcznie ustaloną kwotę.
+        function calculateDayRate(firstShiftTotal, hasSecondShift = false, secondShiftRate = 0) {
+            const count = parseInt(firstShiftTotal, 10) || 0;
             let rate = 0;
 
             if (count > 0) {
@@ -87,13 +84,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (hasSecondShift) {
-                rate += 150;
+                rate += (parseFloat(secondShiftRate) || 0);
             }
 
             return rate;
         }
 
-        // Pobieranie głównych danych aplikacji z Firestore
         db.collection('kurier_app').doc('main_data')
             .onSnapshot((doc) => {
                 if (doc.exists) {
@@ -169,26 +165,42 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // TA FUNKCJA TERAZ JAWNIE ZERUJE POLA GDY BRAK DANYCH
         function loadDayToForm(dateStr) {
             const title = document.getElementById('selected-date-title');
             if (title) title.textContent = `Wybrany dzień: ${dateStr}`;
 
             const dayData = (appData.days && appData.days[dateStr]) 
                 ? appData.days[dateStr] 
-                : { address: 0, apm: 0, pudo: 0, pickups: 0, secondShift: false };
+                : { 
+                    address: 0, apm: 0, pudo: 0, pickups: 0, 
+                    secondShift: false, secondAddress: 0, secondApm: 0, secondPickups: 0, secondShiftRate: 150 
+                  };
 
             const addrEl = document.getElementById('address');
             const apmEl = document.getElementById('apm');
             const pudoEl = document.getElementById('pudo');
             const pickEl = document.getElementById('pickups');
-            const secondShiftCheckbox = document.getElementById('second-shift');
+
+            const secondShiftCb = document.getElementById('second-shift');
+            const secAddrEl = document.getElementById('second-address');
+            const secApmEl = document.getElementById('second-apm');
+            const secPickEl = document.getElementById('second-pickups');
+            const secRateEl = document.getElementById('second-shift-rate');
+            const secDetailsDiv = document.getElementById('second-shift-details');
 
             if (addrEl) addrEl.value = dayData.address !== undefined ? dayData.address : 0;
             if (apmEl) apmEl.value = dayData.apm !== undefined ? dayData.apm : 0;
             if (pudoEl) pudoEl.value = dayData.pudo !== undefined ? dayData.pudo : 0;
             if (pickEl) pickEl.value = dayData.pickups !== undefined ? dayData.pickups : 0;
-            if (secondShiftCheckbox) secondShiftCheckbox.checked = Boolean(dayData.secondShift);
+
+            const has2nd = Boolean(dayData.secondShift);
+            if (secondShiftCb) secondShiftCb.checked = has2nd;
+            if (secDetailsDiv) secDetailsDiv.style.display = has2nd ? 'block' : 'none';
+
+            if (secAddrEl) secAddrEl.value = dayData.secondAddress !== undefined ? dayData.secondAddress : 0;
+            if (secApmEl) secApmEl.value = dayData.secondApm !== undefined ? dayData.secondApm : 0;
+            if (secPickEl) secPickEl.value = dayData.secondPickups !== undefined ? dayData.secondPickups : 0;
+            if (secRateEl) secRateEl.value = dayData.secondShiftRate !== undefined ? dayData.secondShiftRate : 150;
 
             calculateDailyTotals();
         }
@@ -198,12 +210,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const apm = parseInt(document.getElementById('apm')?.value, 10) || 0;
             const pudo = parseInt(document.getElementById('pudo')?.value, 10) || 0;
             const pick = parseInt(document.getElementById('pickups')?.value, 10) || 0;
+            const firstShiftTotal = addr + apm + pudo + pick;
 
-            const secondShiftCheckbox = document.getElementById('second-shift');
-            const hasSecondShift = secondShiftCheckbox ? secondShiftCheckbox.checked : false;
+            const secondShiftCb = document.getElementById('second-shift');
+            const hasSecondShift = secondShiftCb ? secondShiftCb.checked : false;
+            
+            const secAddr = hasSecondShift ? (parseInt(document.getElementById('second-address')?.value, 10) || 0) : 0;
+            const secApm = hasSecondShift ? (parseInt(document.getElementById('second-apm')?.value, 10) || 0) : 0;
+            const secPick = hasSecondShift ? (parseInt(document.getElementById('second-pickups')?.value, 10) || 0) : 0;
+            const secRate = hasSecondShift ? (parseFloat(document.getElementById('second-shift-rate')?.value) || 0) : 0;
 
-            const totalParcels = addr + apm + pudo + pick;
-            const rate = calculateDayRate(totalParcels, hasSecondShift);
+            const secondShiftTotal = secAddr + secApm + secPick;
+            const totalParcels = firstShiftTotal + secondShiftTotal;
+
+            const rate = calculateDayRate(firstShiftTotal, hasSecondShift, secRate);
 
             const totalEl = document.getElementById('daily-total-parcels');
             const rateEl = document.getElementById('daily-rate');
@@ -212,7 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (rateEl) rateEl.textContent = `${rate.toFixed(2)} zł`;
         }
 
-        ['address', 'apm', 'pudo', 'pickups'].forEach(id => {
+        ['address', 'apm', 'pudo', 'pickups', 'second-address', 'second-apm', 'second-pickups', 'second-shift-rate'].forEach(id => {
             const el = document.getElementById(id);
             if (el) {
                 el.addEventListener('input', calculateDailyTotals);
@@ -221,9 +241,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        const secondShiftCheckbox = document.getElementById('second-shift');
-        if (secondShiftCheckbox) {
-            secondShiftCheckbox.addEventListener('change', calculateDailyTotals);
+        const secondShiftCb = document.getElementById('second-shift');
+        if (secondShiftCb) {
+            secondShiftCb.addEventListener('change', (e) => {
+                const secDetailsDiv = document.getElementById('second-shift-details');
+                if (secDetailsDiv) secDetailsDiv.style.display = e.target.checked ? 'block' : 'none';
+                calculateDailyTotals();
+            });
         }
 
         const form = document.getElementById('daily-form');
@@ -232,14 +256,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 e.preventDefault();
 
                 if (!appData.days) appData.days = {};
-                const secondShiftCb = document.getElementById('second-shift');
+
+                const hasSecondShift = document.getElementById('second-shift')?.checked || false;
 
                 appData.days[selectedDateStr] = {
                     address: parseInt(document.getElementById('address')?.value, 10) || 0,
                     apm: parseInt(document.getElementById('apm')?.value, 10) || 0,
                     pudo: parseInt(document.getElementById('pudo')?.value, 10) || 0,
                     pickups: parseInt(document.getElementById('pickups')?.value, 10) || 0,
-                    secondShift: secondShiftCb ? secondShiftCb.checked : false
+                    secondShift: hasSecondShift,
+                    secondAddress: parseInt(document.getElementById('second-address')?.value, 10) || 0,
+                    secondApm: parseInt(document.getElementById('second-apm')?.value, 10) || 0,
+                    secondPickups: parseInt(document.getElementById('second-pickups')?.value, 10) || 0,
+                    secondShiftRate: parseFloat(document.getElementById('second-shift-rate')?.value) || 0
                 };
 
                 try {
@@ -317,15 +346,20 @@ document.addEventListener('DOMContentLoaded', () => {
                         const apm = parseInt(d.apm, 10) || 0;
                         const pudo = parseInt(d.pudo, 10) || 0;
                         const pick = parseInt(d.pickups, 10) || 0;
+
                         const hasSecondShift = !!d.secondShift;
+                        const secAddr = hasSecondShift ? (parseInt(d.secondAddress, 10) || 0) : 0;
+                        const secApm = hasSecondShift ? (parseInt(d.secondApm, 10) || 0) : 0;
+                        const secPick = hasSecondShift ? (parseInt(d.secondPickups, 10) || 0) : 0;
+                        const secRate = hasSecondShift ? (parseFloat(d.secondShiftRate) || 0) : 0;
 
-                        mAddr += addr;
-                        mApm += apm;
+                        mAddr += (addr + secAddr);
+                        mApm += (apm + secApm);
                         mPudo += pudo;
-                        mPick += pick;
+                        mPick += (pick + secPick);
 
-                        const dayTotal = addr + apm + pudo + pick;
-                        mEarnings += calculateDayRate(dayTotal, hasSecondShift);
+                        const firstShiftTotal = addr + apm + pudo + pick;
+                        mEarnings += calculateDayRate(firstShiftTotal, hasSecondShift, secRate);
                     }
                 });
             }

@@ -222,12 +222,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         function calculateDailyTotals() {
-            // Czas 1. zmiany
             const startStr1 = document.getElementById('work-start')?.value;
             const endStr1 = document.getElementById('work-end')?.value;
             let totalMinutes = calculateWorkMinutes(startStr1, endStr1);
 
-            // Czas 2. zmiany
             const hasSecondShift = document.getElementById('second-shift')?.checked || false;
             if (hasSecondShift) {
                 const startStr2 = document.getElementById('second-work-start')?.value;
@@ -237,6 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const hours = Math.floor(totalMinutes / 60);
             const mins = totalMinutes % 60;
+            const totalHoursDecimal = totalMinutes / 60;
 
             const hoursEl = document.getElementById('daily-hours');
             if (hoursEl) hoursEl.textContent = `${hours}h ${mins}m`;
@@ -262,9 +261,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const totalEl = document.getElementById('daily-total-parcels');
             const rateEl = document.getElementById('daily-rate');
+            const paceEl = document.getElementById('daily-pace');
+            const hourlyRateEl = document.getElementById('daily-hourly-rate');
 
             if (totalEl) totalEl.textContent = totalParcels;
             if (rateEl) rateEl.textContent = `${totalEarn.toFixed(2)} zł ${tips > 0 ? `(w tym ${tips}zł tip)` : ''}`;
+
+            // Wyliczenie paczek/h i zł/h dla dnia
+            if (totalHoursDecimal > 0) {
+                const pace = Math.round(totalParcels / totalHoursDecimal);
+                const hourlyRate = (totalEarn / totalHoursDecimal).toFixed(2);
+                if (paceEl) paceEl.textContent = `${pace} paczek/h`;
+                if (hourlyRateEl) hourlyRateEl.textContent = `${hourlyRate} zł/h`;
+            } else {
+                if (paceEl) paceEl.textContent = `0 paczek/h`;
+                if (hourlyRateEl) hourlyRateEl.textContent = `0.00 zł/h`;
+            }
         }
 
         ['address', 'apm-pudo', 'awizo', 'pickups', 'tips', 'work-start', 'work-end', 
@@ -369,11 +381,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const selectedMonth = select ? select.value : formatDate(currentDate).substring(0, 7);
 
             let mAddr = 0, mApmPudo = 0, mAwizo = 0, mPick = 0;
-            let mEarnings = 0, mTips = 0, mMinutes = 0;
+            let mEarnings = 0, mTips = 0, mMinutes = 0, mWorkingDays = 0;
 
             if (appData.days) {
                 Object.entries(appData.days).forEach(([date, d]) => {
                     if (date.startsWith(selectedMonth)) {
+                        mWorkingDays++;
+
                         const addr = parseInt(d.address, 10) || 0;
                         const apmPudo = parseInt(d.apmPudo, 10) || (parseInt(d.apm, 10) || 0);
                         const awizo = parseInt(d.awizo, 10) || 0;
@@ -406,10 +420,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const mTotalParcels = mAddr + mApmPudo + mAwizo + mPick;
             const mHours = Math.round((mMinutes / 60) * 10) / 10;
+            const mTotalHoursDecimal = mMinutes / 60;
+
+            const mPace = mTotalHoursDecimal > 0 ? Math.round(mTotalParcels / mTotalHoursDecimal) : 0;
+            const mHourlyRate = mTotalHoursDecimal > 0 ? ((mEarnings + mTips) / mTotalHoursDecimal).toFixed(2) : "0.00";
 
             document.getElementById('stat-monthly-earnings').textContent = `${mEarnings.toFixed(2)} zł`;
             document.getElementById('stat-monthly-tips').textContent = `${mTips.toFixed(2)} zł`;
+            document.getElementById('stat-monthly-days').textContent = `${mWorkingDays} dni`;
             document.getElementById('stat-monthly-hours').textContent = `${mHours}h`;
+            document.getElementById('stat-monthly-pace').textContent = `${mPace} paczek/h`;
+            document.getElementById('stat-monthly-hourly-rate').textContent = `${mHourlyRate} zł/h`;
             document.getElementById('stat-monthly-parcels').textContent = mTotalParcels;
             document.getElementById('stat-address').textContent = mAddr;
             document.getElementById('stat-apm-pudo').textContent = mApmPudo;

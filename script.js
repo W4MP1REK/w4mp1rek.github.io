@@ -36,12 +36,12 @@ document.addEventListener('DOMContentLoaded', () => {
 // --- FIREBASE INICJALIZACJA I POLĄCZENIE ---
 function initFirebase() {
     const firebaseConfig = {
-        apiKey: "AIzaSyYourConfigHere",
-        authDomain: "kurier-app.firebaseapp.com",
-        projectId: "kurier-app",
-        storageBucket: "kurier-app.appspot.com",
-        messagingSenderId: "123456789",
-        appId: "1:123456789:web:abcdef"
+        apiKey: "AIzaSyBsNwt33Z3XOyVmBAY6kqlDmLXTwjM-vYY",
+        authDomain: "kurier-app-6ac5a.firebaseapp.com",
+        projectId: "kurier-app-6ac5a",
+        storageBucket: "kurier-app-6ac5a.firebasestorage.app",
+        messagingSenderId: "439457783683",
+        appId: "1:439457783683:web:57a9353f58e2c42dd9a0b6"
     };
 
     if (typeof firebase !== 'undefined' && !firebase.apps.length) {

@@ -1,20 +1,24 @@
 {
-  "short_name": "KurierApp",
-  "name": "Aplikacja Kuriera",
-  "icons": [
-    {
-      "src": "https://cdn-icons-png.flaticon.com/512/2830/2830305.png",
-      "type": "image/png",
-      "sizes": "192x192"
-    },
-    {
-      "src": "https://cdn-icons-png.flaticon.com/512/2830/2830305.png",
-      "type": "image/png",
-      "sizes": "512x512"
-    }
-  ],
-  "start_url": "/index.html",
+  "name": "Panel Kuriera",
+  "short_name": "Kurier",
+  "description": "Aplikacja do zarządzania paczkami, czasem pracy i zarobkami kuriera",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#0f172a",
   "theme_color": "#1e293b",
-  "display": "standalone"
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
 }

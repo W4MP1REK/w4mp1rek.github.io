@@ -104,8 +104,12 @@ header {
     background-color: var(--success);
 }
 
-.status-dot.offline {
-    background-color: var(--danger);
+.status-dot.offline, .status-offline {
+    background-color: var(--danger) !important;
+}
+
+.status-online {
+    background-color: var(--success) !important;
 }
 
 /* Navigation Tabs */
@@ -161,6 +165,15 @@ main {
     transform: translateY(0);
 }
 
+.tab-anim-enter {
+    animation: fadeIn 0.3s ease forwards;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 /* Cards & Grid */
 .grid-dashboard {
     display: grid;
@@ -203,11 +216,12 @@ main {
     margin-top: 0.4rem;
 }
 
-.sensitive {
+.sensitive, .mask-sensitive {
     transition: filter 0.3s;
 }
 
-.hide-sensitive .sensitive {
+.hide-sensitive .sensitive,
+.hide-sensitive .mask-sensitive {
     filter: blur(6px);
     user-select: none;
 }
@@ -269,6 +283,20 @@ input:focus, select:focus, textarea:focus {
     overflow-x: auto;
     padding-bottom: 0.5rem;
     margin-bottom: 1.5rem;
+    transition: max-height 0.3s ease;
+}
+
+.calendar-bar.compact-view {
+    gap: 0.25rem;
+}
+
+.calendar-bar.compact-view .cal-day {
+    min-width: 45px;
+    padding: 0.3rem;
+}
+
+.calendar-bar.compact-view .day-num {
+    font-size: 0.9rem;
 }
 
 .cal-day {

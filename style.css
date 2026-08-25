@@ -23,7 +23,7 @@ body {
     display: flex;
     justify-content: center;
     min-height: 100vh;
-    padding: 10px;
+    padding: 20px 10px;
 }
 
 /* Modal logowania */
@@ -55,13 +55,18 @@ body {
     letter-spacing: 5px;
 }
 
-/* Kontener główny */
+/* Kontener główny - powiększony pod komputery */
+#app-content {
+    width: 100%;
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
 .container {
     width: 100%;
-    max-width: 500px;
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 20px;
 }
 
 header {
@@ -69,10 +74,11 @@ header {
     justify-content: space-between;
     align-items: center;
     padding: 10px 5px;
+    margin-bottom: 10px;
 }
 
 header h1 {
-    font-size: 1.4rem;
+    font-size: 1.6rem;
     font-weight: 700;
 }
 
@@ -85,7 +91,7 @@ header h1 {
 }
 
 h2 {
-    font-size: 1.1rem;
+    font-size: 1.15rem;
     margin-bottom: 15px;
     color: var(--text-main);
 }
@@ -190,8 +196,8 @@ button:hover {
 
 #logout-btn {
     width: auto;
-    padding: 6px 12px;
-    font-size: 0.8rem;
+    padding: 8px 16px;
+    font-size: 0.85rem;
     background: #475569;
 }
 
@@ -236,4 +242,24 @@ button:hover {
 .stat-item strong {
     font-size: 1.1rem;
     color: var(--text-main);
+}
+
+/* RZESPONSYWNOŚĆ (UKŁAD DLA KOMPUTERÓW) */
+@media (min-width: 768px) {
+    .container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas: 
+            "calendar stats"
+            "form stats";
+        align-items: start;
+    }
+
+    .container > section:nth-child(1) { grid-area: calendar; }
+    .container > section:nth-child(2) { grid-area: form; }
+    .container > section:nth-child(3) { grid-area: stats; }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }

@@ -102,7 +102,7 @@ h1 { font-size: 1.3rem; }
 .calendar-grid {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 5px;
+    gap: 6px;
 }
 
 .calendar-day-header {
@@ -113,26 +113,105 @@ h1 { font-size: 1.3rem; }
 }
 
 .calendar-day {
-    aspect-ratio: 1;
+    min-height: 52px;
     background: #0f172a;
     border: 1px solid var(--border-color);
-    border-radius: 6px;
+    border-radius: 8px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: space-between;
+    padding: 4px;
     cursor: pointer;
     font-size: 0.85rem;
     position: relative;
+    font-weight: bold;
 }
 
 .calendar-day.empty { background: transparent; border: none; cursor: default; }
-.calendar-day.selected { border: 2px solid var(--accent-blue); background: #1e293b; }
 
-/* Kolorowanie dni w kalendarzu */
-.calendar-day.tier-low { border-left: 3px solid #64748b; }
-.calendar-day.tier-mid { border-left: 3px solid #3b82f6; }
-.calendar-day.tier-high { border-left: 3px solid #10b981; }
+/* Aktywny wyselekcjonowany dzień */
+.calendar-day.selected { 
+    outline: 3px solid #f59e0b; 
+    outline-offset: -1px;
+    z-index: 2;
+}
+
+/* 1. KIEDY BYŁEM W PRACY + PROGI */
+.calendar-day.tier-low { 
+    background-color: #334155 !important; 
+    color: #fff;
+    border-color: #475569;
+}
+
+.calendar-day.tier-mid { 
+    background-color: #1e40af !important; 
+    color: #fff;
+    border-color: #3b82f6;
+}
+
+.calendar-day.tier-high { 
+    background-color: #065f46 !important; 
+    color: #fff;
+    border-color: #10b981;
+}
+
+/* Ikona Notatki */
+.note-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    font-size: 0.65rem;
+}
+
+/* Oznaczenie 2. Zmiany */
+.second-shift-tag {
+    background: #8b5cf6;
+    color: #fff;
+    font-size: 0.65rem;
+    padding: 1px 4px;
+    border-radius: 4px;
+    font-weight: 800;
+    margin-top: 2px;
+}
+
+/* Legenda pod kalendarzem */
+.calendar-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 15px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.legend-color {
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+}
+
+.legend-color.low { background-color: #334155; }
+.legend-color.mid { background-color: #1e40af; }
+.legend-color.high { background-color: #065f46; }
+
+.legend-tag.sec {
+    background: #8b5cf6;
+    color: #fff;
+    font-size: 0.6rem;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-weight: bold;
+}
 
 .form-group {
     margin-bottom: 12px;

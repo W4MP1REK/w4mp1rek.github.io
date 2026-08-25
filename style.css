@@ -257,6 +257,41 @@ input, select, textarea {
     align-self: flex-start;
 }
 
+/* PANEL EDYCJI DNIA POD KALENDARZEM */
+.day-editor-container {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 2px dashed var(--border-color);
+}
+
+.day-editor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.btn-close {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    font-size: 1.2rem;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+}
+
+.btn-close:hover {
+    background-color: #ef4444;
+    color: #ffffff;
+    border-color: #ef4444;
+}
+
 /* STATYSTYKI & KARTY */
 .stats-grid, .records-grid, .badges-grid {
     display: grid;

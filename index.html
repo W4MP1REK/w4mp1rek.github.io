@@ -4,363 +4,340 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aplikacja Kuriera</title>
-    
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Kurier">
-
-    <link rel="icon" type="image/svg+xml" href="icon.svg">
-    <link rel="apple-touch-icon" href="icon.svg">
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#1e293b">
-    
     <link rel="stylesheet" href="style.css">
+    
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="script.js" defer></script>
 </head>
-<body>
+<body data-theme="dark">
 
-    <!-- Modal logowania -->
-    <div id="auth-modal" class="modal">
-        <div class="modal-content">
-            <h2>Podaj PIN</h2>
+    <!-- Modal Autoryzacji -->
+    <div id="auth-modal" class="modal-overlay">
+        <div class="modal-card">
+            <h2>Logowanie</h2>
+            <p>Wprowadź PIN, aby uzyskać dostęp:</p>
             <form id="login-form">
-                <input type="password" id="pin-input" placeholder="Wpisz PIN" required autofocus>
-                <button type="submit">Zaloguj</button>
+                <input type="password" id="pin-input" placeholder="****" maxlength="8" required>
+                <button type="submit" class="btn-primary">Zaloguj</button>
             </form>
         </div>
     </div>
 
-    <!-- Główna zawartość -->
+    <!-- Główny Kontener Aplikacji -->
     <div id="app-content" style="display: none;">
-        <header>
-            <h1>Panel Kuriera</h1>
-            <nav class="nav-tabs">
-                <button class="nav-btn active" data-tab="tab-main">Dzień & Kalendarz</button>
-                <button class="nav-btn" data-tab="tab-stats">Statystyki</button>
-                <button class="nav-btn" data-tab="tab-records">Rekordy & Odznaki</button>
-                <button class="nav-btn" data-tab="tab-settings">Ustawienia</button>
-            </nav>
-            <button id="logout-btn" class="logout-btn">Wyloguj</button>
+        
+        <!-- Pasek Górny -->
+        <header class="top-bar">
+            <div class="brand">
+                <span class="logo-icon">📦</span>
+                <h1>KurierApp</h1>
+            </div>
+            <div class="top-controls">
+                <span id="cloud-status" class="status-badge online">Online</span>
+                <button id="toggle-privacy-btn" class="btn-icon" title="Tryb prywatności">👁️</button>
+                <button id="logout-btn" class="btn-secondary">Wyloguj</button>
+            </div>
         </header>
 
-        <main class="container">
+        <!-- Nawigacja -->
+        <nav class="main-nav">
+            <button class="nav-btn active" data-tab="tab-calendar">📅 Kalendarz</button>
+            <button class="nav-btn" data-tab="tab-day">✏️ Dzień</button>
+            <button class="nav-btn" data-tab="tab-stats">📊 Statystyki</button>
+            <button class="nav-btn" data-tab="tab-records">🏆 Rekordy</button>
+            <button class="nav-btn" data-tab="tab-settings">⚙️ Ustawienia</button>
+            <button class="nav-btn" data-tab="tab-faq">❓ FAQ</button>
+        </nav>
 
-            <!-- ZAKŁADKA 1: MAIN (DZIEŃ & KALENDARZ) -->
-            <div id="tab-main" class="tab-content active">
-                <section class="card">
-                    <div class="calendar-header">
-                        <button id="prev-month">&lt;</button>
-                        <h2 id="calendar-month-year">Miesiąc Rok</h2>
-                        <button id="next-month">&gt;</button>
+        <main class="content-container">
+
+            <!-- ZAKŁADKA 1: KALENDARZ -->
+            <section id="tab-calendar" class="tab-content active fade-in">
+                <div class="calendar-controls">
+                    <button id="prev-month" class="btn-secondary">&lt;</button>
+                    <h2 id="calendar-month-year">Miesiąc Rok</h2>
+                    <button id="next-month" class="btn-secondary">&gt;</button>
+                    <button id="btn-today" class="btn-primary">Dzisiaj</button>
+                </div>
+                <div id="calendar-grid" class="calendar-grid"></div>
+            </section>
+
+            <!-- ZAKŁADKA 2: FORMULARZ DNIA -->
+            <section id="tab-day" class="tab-content fade-in">
+                <h2 id="selected-date-title">Wybrany dzień: ----</h2>
+                
+                <form id="daily-form">
+                    <div class="form-section">
+                        <h3>1. Godziny pracy</h3>
+                        <div class="form-row">
+                            <label>Start:
+                                <input type="time" id="work-start">
+                                <button type="button" class="btn-now" data-target="work-start">Teraz</button>
+                            </label>
+                            <label>Koniec:
+                                <input type="time" id="work-end">
+                                <button type="button" class="btn-now" data-target="work-end">Teraz</button>
+                            </label>
+                        </div>
                     </div>
-                    <div id="calendar-grid" class="calendar-grid"></div>
 
-                    <!-- Czytelna Legenda Oznaczeń -->
-                    <div class="calendar-legend">
-                        <div class="legend-item"><span class="legend-color low"></span> &lt; 200 paczek</div>
-                        <div class="legend-item"><span class="legend-color mid"></span> 200 - 300</div>
-                        <div class="legend-item"><span class="legend-color high"></span> 300+ paczek</div>
-                        <div class="legend-item"><span class="legend-tag sec">2Z</span> 2. zmiana</div>
-                        <div class="legend-item">📝 Notatka</div>
+                    <div class="form-section">
+                        <h3>2. Paczki (1. zmiana)</h3>
+                        <div class="form-grid">
+                            <label>Adresy: <input type="number" id="address" min="0"></label>
+                            <label>APM / PUDO: <input type="number" id="apm-pudo" min="0"></label>
+                            <label>Awizo: <input type="number" id="awizo" min="0"></label>
+                            <label>Odbiory: <input type="number" id="pickups" min="0"></label>
+                            <label>Napiwki (zł): <input type="number" id="tips" min="0" step="0.5"></label>
+                        </div>
                     </div>
-                </section>
 
-                <section class="card">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <h2 id="selected-date-title">Wybrany dzień: --</h2>
-                        <button type="button" id="btn-today" class="btn-sec">Dzisiaj</button>
-                    </div>
-                    
-                    <form id="daily-form">
-                        <h3>Dodatki</h3>
-                        <div class="form-group">
-                            <label>Napiwki / Górka (zł):</label>
-                            <input type="number" id="tips" min="0" step="0.5" value="0">
-                        </div>
-
-                        <hr style="margin: 20px 0; border: 0; border-top: 1px solid var(--border-color);">
-
-                        <h3>Pierwsza zmiana</h3>
-                        <div style="display: flex; gap: 10px;">
-                            <div class="form-group" style="flex: 1;">
-                                <label>Start 1. zmiany:</label>
-                                <div class="input-with-btn">
-                                    <input type="time" id="work-start">
-                                    <button type="button" class="btn-now" data-target="work-start">Teraz</button>
-                                </div>
-                            </div>
-                            <div class="form-group" style="flex: 1;">
-                                <label>Koniec 1. zmiany:</label>
-                                <div class="input-with-btn">
-                                    <input type="time" id="work-end">
-                                    <button type="button" class="btn-now" data-target="work-end">Teraz</button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Doręczenia Adres:</label>
-                            <input type="number" id="address" min="0" value="0">
-                        </div>
-                        <div class="form-group">
-                            <label>Doręczenia APM / PUDO:</label>
-                            <input type="number" id="apm-pudo" min="0" value="0">
-                        </div>
-                        <div class="form-group">
-                            <label>Awizo / Nieodebrane:</label>
-                            <input type="number" id="awizo" min="0" value="0">
-                        </div>
-                        <div class="form-group">
-                            <label>Odbiory (Pickups):</label>
-                            <input type="number" id="pickups" min="0" value="0">
-                        </div>
-
-                        <hr style="margin: 20px 0; border: 0; border-top: 1px solid var(--border-color);">
-
-                        <h3>Druga zmiana</h3>
-                        <div class="form-group" style="flex-direction: row; align-items: center; gap: 10px;">
+                    <div class="form-section">
+                        <label class="checkbox-label">
                             <input type="checkbox" id="second-shift">
-                            <label for="second-shift" style="cursor: pointer; color: var(--text-main); font-weight: 600;">Miałem drugą zmianę</label>
-                        </div>
+                            Druga zmiana (2Z)
+                        </label>
                         
-                        <div id="second-shift-details" style="display: none; padding-left: 10px; border-left: 3px solid #8b5cf6; margin-top: 10px;">
-                            <div style="display: flex; gap: 10px;">
-                                <div class="form-group" style="flex: 1;">
-                                    <label>Start 2. zmiany:</label>
-                                    <div class="input-with-btn">
-                                        <input type="time" id="second-work-start">
-                                        <button type="button" class="btn-now" data-target="second-work-start">Teraz</button>
-                                    </div>
-                                </div>
-                                <div class="form-group" style="flex: 1;">
-                                    <label>Koniec 2. zmiany:</label>
-                                    <div class="input-with-btn">
-                                        <input type="time" id="second-work-end">
-                                        <button type="button" class="btn-now" data-target="second-work-end">Teraz</button>
-                                    </div>
-                                </div>
+                        <div id="second-shift-details" style="display: none;" class="sub-form">
+                            <h4>Szczegóły 2. zmiany</h4>
+                            <div class="form-row">
+                                <label>Start: <input type="time" id="second-work-start"></label>
+                                <label>Koniec: <input type="time" id="second-work-end"></label>
                             </div>
-                            <div class="form-group">
-                                <label>Doręczenia Adres (2. zmiana):</label>
-                                <input type="number" id="second-address" min="0" value="0">
-                            </div>
-                            <div class="form-group">
-                                <label>Doręczenia APM / PUDO (2. zmiana):</label>
-                                <input type="number" id="second-apm-pudo" min="0" value="0">
-                            </div>
-                            <div class="form-group">
-                                <label>Odbiory (2. zmiana):</label>
-                                <input type="number" id="second-pickups" min="0" value="0">
-                            </div>
-                            <div class="form-group">
-                                <label>Stawka za 2. zmianę (zł):</label>
-                                <input type="number" id="second-shift-rate" min="0" step="0.01" value="180">
+                            <div class="form-grid">
+                                <label>Adresy (2Z): <input type="number" id="second-address" min="0"></label>
+                                <label>APM/PUDO (2Z): <input type="number" id="second-apm-pudo" min="0"></label>
+                                <label>Odbiory (2Z): <input type="number" id="second-pickups" min="0"></label>
+                                <label>Stawka 2Z (zł): <input type="number" id="second-shift-rate" step="1"></label>
                             </div>
                         </div>
+                    </div>
 
-                        <hr style="margin: 20px 0; border: 0; border-top: 1px solid var(--border-color);">
+                    <div class="form-section">
+                        <h3>3. Notatka</h3>
+                        <textarea id="daily-note" placeholder="Dodatkowe uwagi na ten dzień..."></textarea>
+                    </div>
 
-                        <h3>Notatka do dnia</h3>
-                        <div class="form-group">
-                            <textarea id="daily-note" placeholder="Wpisz notatkę (np. korki, awaria bazy, miły klient...)" rows="2"></textarea>
-                        </div>
+                    <!-- Podsumowanie dnia na żywo -->
+                    <div class="daily-summary-card">
+                        <div>Czas pracy: <strong id="daily-hours">0h 0m</strong></div>
+                        <div>Paczki suma: <strong id="daily-total-parcels">0</strong></div>
+                        <div>Zarobek: <span class="privacy-sensitive"><strong id="daily-rate">0.00 zł</strong></span></div>
+                        <div>Tempo: <strong id="daily-pace">0 paczek/h</strong></div>
+                        <div>Stawka godzinowa: <span class="privacy-sensitive"><strong id="daily-hourly-rate">0.00 zł/h</strong></span></div>
+                        <div>Czas / paczkę: <strong id="daily-time-per-parcel">0 min/paczka</strong></div>
+                    </div>
 
-                        <div class="summary-box" style="margin-top: 20px;">
-                            <p>Czas pracy: <strong id="daily-hours">0h 0m</strong></p>
-                            <p>Łącznie paczek: <strong id="daily-total-parcels">0</strong></p>
-                            <p>Zarobek + Tipy: <strong id="daily-rate">0.00 zł</strong></p>
-                            <p>Tempo dnia: <strong id="daily-pace">0 paczek/h</strong></p>
-                            <p>Średnia stawkowa: <strong id="daily-hourly-rate">0.00 zł/h</strong></p>
-                        </div>
+                    <button type="submit" class="btn-primary btn-large">Zapisz dzień</button>
+                </form>
+            </section>
 
-                        <button type="submit" style="margin-top: 15px;">Zapisz dzień</button>
-                    </form>
-                </section>
-            </div>
-
-            <!-- ZAKŁADKA 2: STATYSTYKI MIESIĘCZNE -->
-            <div id="tab-stats" class="tab-content">
-                <section class="card">
+            <!-- ZAKŁADKA 3: STATYSTYKI -->
+            <section id="tab-stats" class="tab-content fade-in">
+                <div class="stats-header">
                     <h2>Statystyki Miesięczne</h2>
-                    <div class="form-group">
-                        <label>Wybierz miesiąc:</label>
-                        <select id="stats-month-select"></select>
+                    <select id="stats-month-select"></select>
+                </div>
+
+                <div class="goal-progress-container">
+                    <label>Cel finansowy na miesiąc (zł): 
+                        <input type="number" id="monthly-goal-input" value="6000" step="500">
+                    </label>
+                    <div class="progress-bar-bg">
+                        <div id="progress-bar-fill" class="progress-bar-fill"></div>
+                        <span id="progress-bar-text" class="progress-bar-text">0%</span>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h4>Prognoza zarobków</h4>
+                        <p id="stat-forecast" class="stat-value privacy-sensitive">~0.00 zł</p>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Zarobki (bez tipów)</h4>
+                        <p id="stat-monthly-earnings" class="stat-value privacy-sensitive">0.00 zł</p>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Suma napiwków</h4>
+                        <p id="stat-monthly-tips" class="stat-value privacy-sensitive">0.00 zł</p>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Średnia dniówka</h4>
+                        <p id="stat-avg-daily" class="stat-value privacy-sensitive">0.00 zł</p>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Dni przepracowane</h4>
+                        <p id="stat-monthly-days" class="stat-value">0 dni</p>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Drugie zmiany</h4>
+                        <p id="stat-second-shift-days" class="stat-value">0 dni</p>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Przepracowane godziny</h4>
+                        <p id="stat-monthly-hours" class="stat-value">0h</p>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Średnio godz./tydzień</h4>
+                        <p id="stat-avg-weekly-hours" class="stat-value">0h</p>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Średnie tempo</h4>
+                        <p id="stat-monthly-pace" class="stat-value">0 paczek/h</p>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Średnia stawka/h</h4>
+                        <p id="stat-monthly-hourly-rate" class="stat-value privacy-sensitive">0.00 zł/h</p>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Średni czas / paczkę</h4>
+                        <p id="stat-avg-time-per-parcel" class="stat-value">0 min</p>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Suma paczek</h4>
+                        <p id="stat-monthly-parcels" class="stat-value">0</p>
+                    </div>
+                </div>
+
+                <div class="breakdown-card">
+                    <h3>Rozbicie typów paczek</h3>
+                    <ul>
+                        <li>Adresy: <strong id="stat-address">0</strong></li>
+                        <li>APM / PUDO: <strong id="stat-apm-pudo">0</strong></li>
+                        <li>Awizo: <strong id="stat-awizo">0</strong></li>
+                        <li>Odbiory: <strong id="stat-pickups">0</strong></li>
+                    </ul>
+                </div>
+
+                <div class="payout-card">
+                    <h3>Weryfikacja Przelewu</h3>
+                    <div class="form-row">
+                        <label>Wyliczone: <input type="text" id="calculated-payout" readonly class="privacy-sensitive"></label>
+                        <label>Otrzymane: <input type="number" id="received-payout" placeholder="0.00" step="0.01" class="privacy-sensitive"></label>
+                        <label>Różnica: <input type="text" id="payout-difference" readonly class="privacy-sensitive"></label>
+                    </div>
+                    <button id="save-payout-btn" class="btn-secondary">Zapisz przelew</button>
+                </div>
+
+                <!-- Porównywarka Miesięcy -->
+                <div class="month-comparison-container">
+                    <h3>Porównywarka Miesięcy</h3>
+                    <div class="form-row">
+                        <select id="compare-month-1"></select>
+                        <span>vs</span>
+                        <select id="compare-month-2"></select>
+                        <button id="btn-compare-months" class="btn-primary">Porównaj</button>
+                    </div>
+                    <div id="comparison-results"></div>
+                </div>
+            </section>
+
+            <!-- ZAKŁADKA 4: REKORDY & ODZNAKI -->
+            <section id="tab-records" class="tab-content fade-in">
+                <h2>Rekordy i Osiągnięcia</h2>
+                <div class="records-grid">
+                    <div class="record-box">
+                        <span class="icon">📦</span>
+                        <h4>Najwięcej paczek (1 dzień)</h4>
+                        <p id="rec-max-parcels">0</p>
+                    </div>
+                    <div class="record-box">
+                        <span class="icon">💰</span>
+                        <h4>Najwyższy napiwek</h4>
+                        <p id="rec-max-tip" class="privacy-sensitive">0.00 zł</p>
+                    </div>
+                    <div class="record-box">
+                        <span class="icon">💎</span>
+                        <h4>Najlepszy zarobek (1 dzień)</h4>
+                        <p id="rec-max-earning" class="privacy-sensitive">0.00 zł</p>
+                    </div>
+                    <div class="record-box">
+                        <span class="icon">⚡</span>
+                        <h4>Max tempo (paczek/h)</h4>
+                        <p id="rec-max-pace">0</p>
+                    </div>
+                </div>
+
+                <h3>Odznaki</h3>
+                <div id="badges-container" class="badges-grid"></div>
+            </section>
+
+            <!-- ZAKŁADKA 5: USTAWIENIA -->
+            <section id="tab-settings" class="tab-content fade-in">
+                <h2>Ustawienia Aplikacji</h2>
+                <form id="settings-form">
+                    <div class="settings-group">
+                        <h3>Wygląd i Personalizacja</h3>
+                        <label>Motyw:
+                            <select id="theme-mode-select">
+                                <option value="dark">Ciemny</option>
+                                <option value="light">Jasny</option>
+                                <option value="oled">OLED (True Black)</option>
+                            </select>
+                        </label>
+                        <label>Kolor akcentu:
+                            <input type="color" id="theme-color-picker" value="#3b82f6">
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="toggle-compact-calendar">
+                            Kompaktowy widok kalendarza
+                        </label>
                     </div>
 
-                    <div style="margin: 15px 0;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-                            <label>Cel miesięczny (zł):</label>
-                            <input type="number" id="monthly-goal-input" value="6000" style="width: 100px; padding: 4px; text-align: right;">
-                        </div>
-                        <div style="width: 100%; background: #334155; height: 20px; border-radius: 10px; overflow: hidden; position: relative;">
-                            <div id="progress-bar-fill" style="width: 0%; background: #10b981; height: 100%; transition: width 0.3s;"></div>
-                            <span id="progress-bar-text" style="position: absolute; width: 100%; text-align: center; top: 0; left: 0; line-height: 20px; font-size: 12px; font-weight: bold; color: #fff;">0%</span>
-                        </div>
+                    <div class="settings-group">
+                        <h3>Progi i Stawki Finansowe</h3>
+                        <label>Stawka Próg 1 (Poniżej T2): <input type="number" id="cfg-rate-tier1" step="0.5"></label>
+                        <label>Limit paczek Próg 2: <input type="number" id="cfg-tier2-limit"></label>
+                        <label>Stawka Próg 2: <input type="number" id="cfg-rate-tier2" step="0.5"></label>
+                        <label>Limit paczek Próg 3: <input type="number" id="cfg-tier3-limit"></label>
+                        <label>Stawka Próg 3: <input type="number" id="cfg-rate-tier3" step="0.5"></label>
+                        <label>Domyślna stawka za 2Z: <input type="number" id="cfg-default-sec-rate" step="0.5"></label>
                     </div>
 
-                    <div class="stats-grid">
-                        <div class="stat-item highlight-box">
-                            <span>Prognoza wypłaty:</span>
-                            <strong id="stat-forecast" style="color: #60a5fa;">0.00 zł</strong>
-                        </div>
-                        <div class="stat-item">
-                            <span>Zarobek (wyliczony):</span>
-                            <strong id="stat-monthly-earnings">0.00 zł</strong>
-                        </div>
-                        <div class="stat-item">
-                            <span>Napiwki:</span>
-                            <strong id="stat-monthly-tips">0.00 zł</strong>
-                        </div>
-                        <div class="stat-item">
-                            <span>Przepracowane dni:</span>
-                            <strong id="stat-monthly-days">0 dni</strong>
-                        </div>
-                        <div class="stat-item">
-                            <span>Dni z 2. zmianą:</span>
-                            <strong id="stat-second-shift-days">0 dni</strong>
-                        </div>
-                        <div class="stat-item">
-                            <span>Godziny w miesiącu:</span>
-                            <strong id="stat-monthly-hours">0h</strong>
-                        </div>
-                        <div class="stat-item">
-                            <span>Średnie tempo:</span>
-                            <strong id="stat-monthly-pace">0 paczek/h</strong>
-                        </div>
-                        <div class="stat-item">
-                            <span>Średnia stawkowa:</span>
-                            <strong id="stat-monthly-hourly-rate">0.00 zł/h</strong>
-                        </div>
-                        <div class="stat-item">
-                            <span>Suma paczek:</span>
-                            <strong id="stat-monthly-parcels">0</strong>
-                        </div>
-                        <div class="stat-item">
-                            <span>Adres:</span>
-                            <strong id="stat-address">0</strong>
-                        </div>
-                        <div class="stat-item">
-                            <span>APM / PUDO:</span>
-                            <strong id="stat-apm-pudo">0</strong>
-                        </div>
-                        <div class="stat-item">
-                            <span>Awizo:</span>
-                            <strong id="stat-awizo">0</strong>
-                        </div>
-                        <div class="stat-item">
-                            <span>Odbiory:</span>
-                            <strong id="stat-pickups">0</strong>
-                        </div>
-                    </div>
-
-                    <hr style="margin: 20px 0; border: 0; border-top: 1px solid var(--border-color);">
-
-                    <h3>Rozliczenie Przelewu</h3>
-                    <div class="form-group">
-                        <label>Wyliczona kwota (bez tipów):</label>
-                        <input type="text" id="calculated-payout" readonly>
-                    </div>
-                    <div class="form-group">
-                        <label>Otrzymany przelew (zł):</label>
-                        <input type="number" id="received-payout" step="0.01" placeholder="Wpisz kwotę przelewu">
-                    </div>
-                    <div class="form-group">
-                        <label>Różnica w wypłacie:</label>
-                        <input type="text" id="payout-difference" readonly style="font-weight: bold;">
-                    </div>
-                    <button id="save-payout-btn">Zapisz przelew</button>
-                </section>
-            </div>
-
-            <!-- ZAKŁADKA 3: REKORDY & ODZNAKI -->
-            <div id="tab-records" class="tab-content">
-                <section class="card">
-                    <h2>Osobiste Rekordy</h2>
-                    <div class="stats-grid">
-                        <div class="stat-item">
-                            <span>Najwięcej paczek w dzień:</span>
-                            <strong id="rec-max-parcels">0</strong>
-                        </div>
-                        <div class="stat-item">
-                            <span>Najwyższy tip w dzień:</span>
-                            <strong id="rec-max-tip">0.00 zł</strong>
-                        </div>
-                        <div class="stat-item">
-                            <span>Najwyższy zarobek w dzień:</span>
-                            <strong id="rec-max-earning">0.00 zł</strong>
-                        </div>
-                        <div class="stat-item">
-                            <span>Najlepsze tempo:</span>
-                            <strong id="rec-max-pace">0 paczek/h</strong>
-                        </div>
-                    </div>
-                </section>
-
-                <section class="card" style="margin-top: 20px;">
-                    <h2>Odznaki & Osiągnięcia</h2>
-                    <div id="badges-container" class="badges-grid"></div>
-                </section>
-            </div>
-
-            <!-- ZAKŁADKA 4: USTAWIENIA (KONFIGURACJA PROGÓW I PINU) -->
-            <div id="tab-settings" class="tab-content">
-                <section class="card">
-                    <h2>Edycja Progów i Stawek</h2>
-                    <form id="settings-form">
-                        <h3>1. Zmiana (Progi Paczek)</h3>
-                        <div class="form-group">
-                            <label>Próg 1 (np. do 199 paczek) - Stawka zł:</label>
-                            <input type="number" id="cfg-rate-tier1" value="240">
-                        </div>
-                        <div class="form-group">
-                            <label>Próg 2 - Wymagana liczba paczek (np. 200):</label>
-                            <input type="number" id="cfg-tier2-limit" value="200">
-                        </div>
-                        <div class="form-group">
-                            <label>Próg 2 (od limitu 2 do limitu 3) - Stawka zł:</label>
-                            <input type="number" id="cfg-rate-tier2" value="270">
-                        </div>
-                        <div class="form-group">
-                            <label>Próg 3 - Wymagana liczba paczek (np. 301):</label>
-                            <input type="number" id="cfg-tier3-limit" value="301">
-                        </div>
-                        <div class="form-group">
-                            <label>Próg 3 (od limitu 3 w górę) - Stawka zł:</label>
-                            <input type="number" id="cfg-rate-tier3" value="300">
-                        </div>
-
-                        <hr style="margin: 20px 0; border: 0; border-top: 1px solid var(--border-color);">
-
-                        <h3>2. Zmiana (Domyślna stawka)</h3>
-                        <div class="form-group">
-                            <label>Domyślna stawka za 2. zmianę (zł):</label>
-                            <input type="number" id="cfg-default-sec-rate" value="180">
-                        </div>
-
-                        <hr style="margin: 20px 0; border: 0; border-top: 1px solid var(--border-color);">
-
+                    <div class="settings-group">
                         <h3>Bezpieczeństwo</h3>
-                        <div class="form-group">
-                            <label>PIN do aplikacji:</label>
-                            <input type="password" id="cfg-pin" placeholder="Nowy PIN">
-                        </div>
+                        <label>Nowy PIN dostępowy:
+                            <input type="password" id="cfg-pin" placeholder="Zostaw puste aby nie zmieniać">
+                        </label>
+                    </div>
 
-                        <button type="submit">Zapisz Ustawienia</button>
-                    </form>
-                </section>
-            </div>
+                    <button type="submit" class="btn-primary btn-large">Zapisz Ustawienia</button>
+                </form>
+
+                <div class="settings-group">
+                    <h3>Rejestr aktywności</h3>
+                    <ul id="activity-log-list" class="log-list"></ul>
+                </div>
+            </section>
+
+            <!-- ZAKŁADKA 6: FAQ / INSTRUKCJA -->
+            <section id="tab-faq" class="tab-content fade-in">
+                <h2>Instrukcja & Często Zadawane Pytania</h2>
+                <div class="faq-list">
+                    <details>
+                        <summary>Jak aplikacja przelicza progi zarobkowe?</summary>
+                        <p>Aplikacja zlicza sumę paczek z pierwszej zmiany (Adres, APM/PUDO, Awizo, Odbiory) i przypisuje odpowiednią stawkę stałą według progu zdefiniowanego w Ustawieniach. Jeśli odznaczono drugą zmianę, jej kwota jest dodawana osobno.</p>
+                    </details>
+                    <details>
+                        <summary>Jak działa historia stawek?</summary>
+                        <p>Gdy zmienisz stawki w Ustawieniach, nowa stawka obowiązuje od dnia zmiany. Dni historyczne zachowują stawki, które obowiązywały w momencie ich zapisania.</p>
+                    </details>
+                    <details>
+                        <summary>Czy aplikacja działa bez dostępu do Internetu?</summary>
+                        <p>Tak! Dzięki trybowi offline Firestore, wszystkie zmiany są zapisywane lokalnie na Twoim urządzeniu. Synchronizacja z chmurą następuje automatycznie po powrocie połączenia.</p>
+                    </details>
+                    <details>
+                        <summary>Co robi przycisk z ikoną oka (👁️)?</summary>
+                        <p>Przełącza tryb prywatności. Ukrywa zarobki, napiwki oraz przelewy na ekranie, zamieniając wartości liczbowe na gwiazdki (****), co ułatwia bezpieczne korzystanie w miejscach publicznych.</p>
+                    </details>
+                </div>
+            </section>
 
         </main>
     </div>
 
-    <script src="script.js"></script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js')
-                .then(() => console.log("Service Worker zarejestrowany!"))
-                .catch(err => console.log("Błąd SW:", err));
-        }
-    </script>
 </body>
 </html>

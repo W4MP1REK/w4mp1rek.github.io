@@ -17,7 +17,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('login-form');
     const logoutBtn = document.getElementById('logout-btn');
 
-    // Nawigacja po zakładkach
     document.querySelectorAll('.nav-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -76,7 +75,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function initApp() {
         let currentDate = new Date();
-        // 5. Automatyczny wybór dzisiejszej daty po zalogowaniu
         let selectedDateStr = formatDate(currentDate);
         let appData = { days: {}, payouts: {}, settings: {} };
 
@@ -120,7 +118,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return end - start;
         }
 
-        // Pobieranie danych z Firestore
         db.collection('kurier_app').doc('main_data')
             .onSnapshot((doc) => {
                 if (doc.exists) {
@@ -144,7 +141,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return `${year}-${month}-${day}`;
         }
 
-        // 4. Przyciski "Teraz" dla godzin pracy
         document.querySelectorAll('.btn-now').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const targetId = e.target.dataset.target;
@@ -156,14 +152,13 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // Przycisk "Dzisiaj"
         document.getElementById('btn-today')?.addEventListener('click', () => {
             currentDate = new Date();
             selectedDateStr = formatDate(currentDate);
             updateMonthView();
         });
 
-        // 6. Oznaczenia w kalendarzu kolorem
+        // WIZUALIZACJA KALENDARZA (Super Widoczna)
         function renderCalendar() {
             const grid = document.getElementById('calendar-grid');
             const monthTitle = document.getElementById('calendar-month-year');
@@ -210,17 +205,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (dayData) {
                     const firstShiftTotal = (parseInt(dayData.address, 10)||0) + (parseInt(dayData.apmPudo||dayData.apm, 10)||0) + (parseInt(dayData.awizo, 10)||0) + (parseInt(dayData.pickups, 10)||0);
 
-                    // Paski progowe
-                    if (firstShiftTotal >= set.tier3Limit) cell.classList.add('tier-high');
-                    else if (firstShiftTotal >= set.tier2Limit) cell.classList.add('tier-mid');
-                    else if (firstShiftTotal > 0) cell.classList.add('tier-low');
+                    // 1 & 2. Oznaczenie kolorem całego dnia (Pracowany + Progi)
+                    if (firstShiftTotal >= set.tier3Limit) {
+                        cell.classList.add('tier-high'); // 300+ paczek (Jaskrawy Zielony)
+                    } else if (firstShiftTotal >= set.tier2Limit) {
+                        cell.classList.add('tier-mid');  // 200-300 paczek (Wyrazisty Niebieski)
+                    } else if (firstShiftTotal > 0 || dayData.secondShift) {
+                        cell.classList.add('tier-low');  // Poniżej 200 paczek / tylko 2 zmiana (Szary/Ciemno-niebieski)
+                    }
 
-                    let dotsHtml = '<div style="display:flex; gap:3px; margin-top:3px;">';
-                    if (dayData.tips > 0) dotsHtml += '<div style="width:5px;height:5px;background:#f59e0b;border-radius:50%;"></div>';
-                    if (dayData.secondShift) dotsHtml += '<div style="width:5px;height:5px;background:#8b5cf6;border-radius:50%;"></div>';
-                    dotsHtml += '</div>';
+                    // 4. Czytelna Ikona Notatki
+                    const hasNote = dayData.note && dayData.note.trim() !== "";
+                    const noteHtml = hasNote ? `<span class="note-badge">📝</span>` : '';
 
-                    cell.innerHTML = `<span>${day}</span>${dotsHtml}`;
+                    // 3. Wyrazisty Znaczek 2. Zmiany
+                    const secondShiftHtml = dayData.secondShift ? `<span class="second-shift-tag">2Z</span>` : '';
+
+                    cell.innerHTML = `
+                        ${noteHtml}
+                        <span>${day}</span>
+                        ${secondShiftHtml}
+                    `;
                 } else {
                     cell.innerHTML = `<span>${day}</span>`;
                 }
@@ -236,7 +241,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // 9. Szybka notatka w formularzu
         function loadDayToForm(dateStr) {
             const title = document.getElementById('selected-date-title');
             if (title) title.textContent = `Wybrany dzień: ${dateStr}`;
@@ -342,7 +346,6 @@ document.addEventListener('DOMContentLoaded', () => {
             calculateDailyTotals();
         });
 
-        // Zapis formularza dnia + 10. Wibracja przy zapisie
         document.getElementById('daily-form')?.addEventListener('submit', async (e) => {
             e.preventDefault();
             if (!appData.days) appData.days = {};
@@ -369,7 +372,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 await db.collection('kurier_app').doc('main_data').set(appData, { merge: true });
-                if (navigator.vibrate) navigator.vibrate([100, 50, 100]); // Wibracja potwierdzająca
+                if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
                 alert('Zapisano dzień!');
             } catch(err) {
                 alert('Błąd zapisu: ' + err.message);
@@ -417,7 +420,6 @@ document.addEventListener('DOMContentLoaded', () => {
             select.onchange = renderStats;
         }
 
-        // STATYSTYKI MIESIĘCZNE, 1. PROGNOZA, 2. RÓŻNICA W WYPŁACIE, 3. DNI Z 2. ZMIANĄ
         function renderStats() {
             const select = document.getElementById('stats-month-select');
             const selectedMonth = select ? select.value : formatDate(currentDate).substring(0, 7);
@@ -466,16 +468,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const mPace = mTotalHoursDecimal > 0 ? Math.round(mTotalParcels / mTotalHoursDecimal) : 0;
             const mHourlyRate = mTotalHoursDecimal > 0 ? ((mEarnings + mTips) / mTotalHoursDecimal).toFixed(2) : "0.00";
 
-            // 1. Miesięczna prognoza wypłaty
             const now = new Date();
             const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-            const forecast = mWorkingDays > 0 ? ((mEarnings + mTips) / mWorkingDays) * Math.min(daysInMonth, 22) : 0; // zakładając ~22 dni robocze
+            const forecast = mWorkingDays > 0 ? ((mEarnings + mTips) / mWorkingDays) * Math.min(daysInMonth, 22) : 0;
             document.getElementById('stat-forecast').textContent = `~${forecast.toFixed(2)} zł`;
 
             document.getElementById('stat-monthly-earnings').textContent = `${mEarnings.toFixed(2)} zł`;
             document.getElementById('stat-monthly-tips').textContent = `${mTips.toFixed(2)} zł`;
             document.getElementById('stat-monthly-days').textContent = `${mWorkingDays} dni`;
-            // 3. Dni z 2. zmianą
             document.getElementById('stat-second-shift-days').textContent = `${mSecondShiftDays} dni`;
             document.getElementById('stat-monthly-hours').textContent = `${mHours}h`;
             document.getElementById('stat-monthly-pace').textContent = `${mPace} paczek/h`;
@@ -488,7 +488,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             document.getElementById('calculated-payout').value = `${mEarnings.toFixed(2)} zł`;
 
-            // 2. Różnica w wypłacie
             const receivedInput = document.getElementById('received-payout');
             const diffInput = document.getElementById('payout-difference');
             
@@ -504,7 +503,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 diffInput.style.color = 'inherit';
             }
 
-            // Pasek postępu
             const goalInput = document.getElementById('monthly-goal-input');
             const goal = parseFloat(goalInput.value) || 6000;
             const totalWithTips = mEarnings + mTips;
@@ -535,7 +533,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // 7. SEKCJA REKORDÓW & 8. ODZNAKI
         function renderRecordsAndBadges() {
             let maxParcels = 0, maxTip = 0, maxEarning = 0, maxPace = 0;
             let totalAddress = 0, totalSecondShifts = 0;
@@ -581,7 +578,6 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('rec-max-earning').textContent = `${maxEarning.toFixed(2)} zł`;
             document.getElementById('rec-max-pace').textContent = `${maxPace} paczek/h`;
 
-            // Renderowanie Odznak
             const badges = [
                 { title: "Setka na Adres", desc: "Ponad 100 paczek adresowych łącznie", unlocked: totalAddress >= 100, icon: "🏠" },
                 { title: "Król Tippingu", desc: "Zgarnij ponad 50 zł napiwku w 1 dzień", unlocked: maxTip >= 50, icon: "💰" },
@@ -602,7 +598,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // 11. PODSTRONA USTAWEŃ - ŁADOWANIE I ZAPIS
         function loadSettingsToForm() {
             const set = getSettings();
             document.getElementById('cfg-rate-tier1').value = set.rateTier1;

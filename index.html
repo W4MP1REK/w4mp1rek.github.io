@@ -1,158 +1,11 @@
-<!--<!DOCTYPE html>
-<html lang="pl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aplikacja Kuriera</title>
-    <link rel="stylesheet" href="style.css">
-     Firebase App & Firestore SDKs
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-</head>
-<body>
-
-    
-    <div id="auth-modal" class="modal">
-        <div class="modal-content">
-            <h2>Podaj PIN</h2>
-            <form id="login-form">
-                <input type="password" id="pin-input" placeholder="Wpisz PIN" required autofocus>
-                <button type="submit">Zaloguj</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- Główna treść aplikacji 
-    <div id="app-content" style="display: none;">
-        <header>
-            <h1>Panel Kuriera</h1>
-            <button id="logout-btn">Wyloguj</button>
-        </header>
-
-        <main class="container">
-            <!-- Sekcja Kalendarza 
-            <section class="card">
-                <div class="calendar-header">
-                    <button id="prev-month">&lt;</button>
-                    <h2 id="calendar-month-year">Miesiąc Rok</h2>
-                    <button id="next-month">&gt;</button>
-                </div>
-                <div id="calendar-grid" class="calendar-grid"></div>
-            </section>
-
-            <!-- Sekcja Formularza Dziennego -
-            <section class="card">
-                <h2 id="selected-date-title">Wybrany dzień: --</h2>
-                
-                <form id="daily-form">
-                    <h3>Pierwsza zmiana</h3>
-                    <div class="form-group">
-                        <label>Doręczenia Adres:</label>
-                        <input type="number" id="address" min="0" value="0">
-                    </div>
-                    <div class="form-group">
-                        <label>Doręczenia APM:</label>
-                        <input type="number" id="apm" min="0" value="0">
-                    </div>
-                    <div class="form-group">
-                        <label>Doręczenia PUDO:</label>
-                        <input type="number" id="pudo" min="0" value="0">
-                    </div>
-                    <div class="form-group">
-                        <label>Odbiory (Pickups):</label>
-                        <input type="number" id="pickups" min="0" value="0">
-                    </div>
-
-                    <hr style="margin: 20px 0; border: 0; border-top: 1px solid #e5e7eb;">
-
-                    <h3>Druga zmiana</h3>
-                    <div class="form-group">
-                        <label>
-                            <input type="checkbox" id="second-shift"> Miałem drugą zmianę
-                        </label>
-                    </div>
-                    
-                    <div id="second-shift-details" style="display: none; padding-left: 15px; border-left: 3px solid #10b981;">
-                        <div class="form-group">
-                            <label>Doręczenia Adres (2. zmiana):</label>
-                            <input type="number" id="second-address" min="0" value="0">
-                        </div>
-                        <div class="form-group">
-                            <label>Doręczenia APM (2. zmiana):</label>
-                            <input type="number" id="second-apm" min="0" value="0">
-                        </div>
-                        <div class="form-group">
-                            <label>Odbiory (2. zmiana):</label>
-                            <input type="number" id="second-pickups" min="0" value="0">
-                        </div>
-                        <div class="form-group">
-                            <label>Stawka za 2. zmianę (zł):</label>
-                            <input type="number" id="second-shift-rate" min="0" step="0.01" value="150">
-                        </div>
-                    </div>
-
-                    <div class="summary-box">
-                        <p>Łącznie paczek dzisiaj: <strong id="daily-total-parcels">0</strong></p>
-                        <p>Zarobek dzisiaj: <strong id="daily-rate">0.00 zł</strong></p>
-                    </div>
-
-                    <button type="submit" class="btn-primary">Zapisz dzień</button>
-                </form>
-            </section>
-
-            <!-- Sekcja Statystyk Miesięcznych 
-            <section class="card">
-                <h2>Statystyki Miesięczne</h2>
-                <div class="form-group">
-                    <label>Wybierz miesiąc:</label>
-                    <select id="stats-month-select"></select>
-                </div>
-
-                <div class="stats-grid">
-                    <div class="stat-item">
-                        <span>Zarobek:</span>
-                        <strong id="stat-monthly-earnings">0.00 zł</strong>
-                    </div>
-                    <div class="stat-item">
-                        <span>Suma paczek:</span>
-                        <strong id="stat-monthly-parcels">0</strong>
-                    </div>
-                    <div class="stat-item">
-                        <span>Adres:</span>
-                        <strong id="stat-address">0</strong>
-                    </div>
-                    <div class="stat-item">
-                        <span>APM:</span>
-                        <strong id="stat-apm">0</strong>
-                    </div>
-                    <div class="stat-item">
-                        <span>PUDO:</span>
-                        <strong id="stat-pudo">0</strong>
-                    </div>
-                    <div class="stat-item">
-                        <span>Odbiory:</span>
-                        <strong id="stat-pickups">0</strong>
-                    </div>
-                </div>
-
-                <hr style="margin: 20px 0; border: 0; border-top: 1px solid #e5e7eb;">
-
-                <h3>Przelew</h3>
-                <div class="form-group">
-                    <label>Wyliczona kwota:</label>
-                    <input type="text" id="calculated-payout" readonly>
-                </div>
-                <div class="form-group">
-                    <label>Otrzymany przelew (zł):</label>
-                    <input type="number" id="received-payout" step="0.01" placeholder="Wpisz kwotę">
-                </div
-                -->
 <!DOCTYPE html>
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aplikacja Kuriera</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1e293b">
     <link rel="stylesheet" href="style.css">
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -189,18 +42,36 @@
                 <h2 id="selected-date-title">Wybrany dzień: --</h2>
                 
                 <form id="daily-form">
+                    <h3>Czas pracy i Dodatki</h3>
+                    <div style="display: flex; gap: 10px;">
+                        <div class="form-group" style="flex: 1;">
+                            <label>Start pracy:</label>
+                            <input type="time" id="work-start">
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label>Koniec pracy:</label>
+                            <input type="time" id="work-end">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Napiwki / Górka (zł):</label>
+                        <input type="number" id="tips" min="0" step="0.5" value="0">
+                    </div>
+
+                    <hr style="margin: 20px 0; border: 0; border-top: 1px solid var(--border-color);">
+
                     <h3>Pierwsza zmiana</h3>
                     <div class="form-group">
                         <label>Doręczenia Adres:</label>
                         <input type="number" id="address" min="0" value="0">
                     </div>
                     <div class="form-group">
-                        <label>Doręczenia APM:</label>
-                        <input type="number" id="apm" min="0" value="0">
+                        <label>Doręczenia APM / PUDO:</label>
+                        <input type="number" id="apm-pudo" min="0" value="0">
                     </div>
                     <div class="form-group">
-                        <label>Doręczenia PUDO:</label>
-                        <input type="number" id="pudo" min="0" value="0">
+                        <label>Awizo / Nieodebrane:</label>
+                        <input type="number" id="awizo" min="0" value="0">
                     </div>
                     <div class="form-group">
                         <label>Odbiory (Pickups):</label>
@@ -221,8 +92,8 @@
                             <input type="number" id="second-address" min="0" value="0">
                         </div>
                         <div class="form-group">
-                            <label>Doręczenia APM (2. zmiana):</label>
-                            <input type="number" id="second-apm" min="0" value="0">
+                            <label>Doręczenia APM / PUDO (2. zmiana):</label>
+                            <input type="number" id="second-apm-pudo" min="0" value="0">
                         </div>
                         <div class="form-group">
                             <label>Odbiory (2. zmiana):</label>
@@ -235,8 +106,9 @@
                     </div>
 
                     <div class="summary-box" style="margin-top: 20px;">
+                        <p>Czas pracy: <strong id="daily-hours">0h 0m</strong></p>
                         <p>Łącznie paczek: <strong id="daily-total-parcels">0</strong></p>
-                        <p>Zarobek dzisiaj: <strong id="daily-rate">0.00 zł</strong></p>
+                        <p>Zarobek + Tipy: <strong id="daily-rate">0.00 zł</strong></p>
                     </div>
 
                     <button type="submit" style="margin-top: 15px;">Zapisz dzień</button>
@@ -250,10 +122,30 @@
                     <select id="stats-month-select"></select>
                 </div>
 
+                <!-- Progress Bar -->
+                <div style="margin: 15px 0;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                        <label>Cel miesięczny (zł):</label>
+                        <input type="number" id="monthly-goal-input" value="6000" style="width: 100px; padding: 4px; text-align: right;">
+                    </div>
+                    <div style="width: 100%; background: #334155; height: 20px; border-radius: 10px; overflow: hidden; position: relative;">
+                        <div id="progress-bar-fill" style="width: 0%; background: #10b981; height: 100%; transition: width 0.3s;"></div>
+                        <span id="progress-bar-text" style="position: absolute; width: 100%; text-align: center; top: 0; left: 0; line-height: 20px; font-size: 12px; font-weight: bold; color: #fff;">0%</span>
+                    </div>
+                </div>
+
                 <div class="stats-grid">
                     <div class="stat-item">
                         <span>Zarobek:</span>
                         <strong id="stat-monthly-earnings">0.00 zł</strong>
+                    </div>
+                    <div class="stat-item">
+                        <span>Napiwki:</span>
+                        <strong id="stat-monthly-tips">0.00 zł</strong>
+                    </div>
+                    <div class="stat-item">
+                        <span>Godziny w miesiącu:</span>
+                        <strong id="stat-monthly-hours">0h</strong>
                     </div>
                     <div class="stat-item">
                         <span>Suma paczek:</span>
@@ -264,12 +156,12 @@
                         <strong id="stat-address">0</strong>
                     </div>
                     <div class="stat-item">
-                        <span>APM:</span>
-                        <strong id="stat-apm">0</strong>
+                        <span>APM / PUDO:</span>
+                        <strong id="stat-apm-pudo">0</strong>
                     </div>
                     <div class="stat-item">
-                        <span>PUDO:</span>
-                        <strong id="stat-pudo">0</strong>
+                        <span>Awizo:</span>
+                        <strong id="stat-awizo">0</strong>
                     </div>
                     <div class="stat-item">
                         <span>Odbiory:</span>
@@ -281,7 +173,7 @@
 
                 <h3>Przelew</h3>
                 <div class="form-group">
-                    <label>Wyliczona kwota:</label>
+                    <label>Wyliczona kwota (zarobek):</label>
                     <input type="text" id="calculated-payout" readonly>
                 </div>
                 <div class="form-group">
@@ -294,5 +186,12 @@
     </div>
 
     <script src="script.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+                .then(() => console.log("Service Worker zarejestrowany!"))
+                .catch(err => console.log("Błąd SW:", err));
+        }
+    </script>
 </body>
 </html>

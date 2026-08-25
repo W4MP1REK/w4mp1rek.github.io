@@ -9,8 +9,6 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
-
-// 22. Wskaźnik stanu Cloud/Offline (Firestore Persistence)
 db.enablePersistence().catch(err => console.error("Firestore persistence error:", err));
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -19,18 +17,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('login-form');
     const logoutBtn = document.getElementById('logout-btn');
 
-    // 16. Animowane przechodzenie między zakładkami (obsługa clas)
     document.querySelectorAll('.nav-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(t => {
-                t.classList.remove('active', 'tab-anim-enter');
-            });
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             btn.classList.add('active');
-            const targetTab = document.getElementById(btn.dataset.tab);
-            if(targetTab) {
-                targetTab.classList.add('active', 'tab-anim-enter');
-            }
+            document.getElementById(btn.dataset.tab).classList.add('active');
         });
     });
 
@@ -84,42 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function initApp() {
         let currentDate = new Date();
         let selectedDateStr = formatDate(currentDate);
-        let appData = { days: {}, payouts: {}, settings: {}, rateHistory: [], logs: [] };
-
-        // 22. Wskaźnik stanu Cloud / Offline
-        window.addEventListener('online', updateOnlineStatus);
-        window.addEventListener('offline', updateOnlineStatus);
-        function updateOnlineStatus() {
-            const statusEl = document.getElementById('cloud-status-indicator');
-            if (statusEl) {
-                statusEl.textContent = navigator.onLine ? "⚡ Cloud Sync Active" : "📡 Offline Mode";
-                statusEl.className = navigator.onLine ? "status-online" : "status-offline";
-            }
-        }
-        updateOnlineStatus();
-
-        // 21. Logi aktywności
-        function addActivityLog(actionMessage) {
-            if (!appData.logs) appData.logs = [];
-            const logEntry = {
-                timestamp: new Date().toISOString(),
-                formatted: new Date().toLocaleString('pl-PL'),
-                action: actionMessage
-            };
-            appData.logs.unshift(logEntry);
-            if (appData.logs.length > 50) appData.logs.pop(); // Limit ostatnich 50 wpisów
-            renderActivityLogs();
-        }
-
-        function renderActivityLogs() {
-            const container = document.getElementById('activity-logs-container');
-            if (!container || !appData.logs) return;
-            container.innerHTML = appData.logs.map(log => `
-                <div class="log-item">
-                    <small>${log.formatted}</small> - <span>${log.action}</span>
-                </div>
-            `).join('');
-        }
+        let appData = { days: {}, payouts: {}, settings: {} };
 
         function getSettings() {
             const cfg = appData.settings || {};
@@ -130,9 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 tier3Limit: parseInt(cfg.tier3Limit, 10) || 301,
                 rateTier3: parseFloat(cfg.rateTier3) || 300,
                 defaultSecRate: parseFloat(cfg.defaultSecRate) || 180,
-                pin: cfg.pin || "1234",
-                userName: cfg.userName || "Kurier",
-                theme: cfg.theme || "dark"
+                pin: cfg.pin || "1234"
             };
         }
 
@@ -170,20 +125,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     appData.days = data.days || {};
                     appData.payouts = data.payouts || {};
                     appData.settings = data.settings || {};
-                    appData.rateHistory = data.rateHistory || [];
-                    appData.logs = data.logs || [];
                 }
                 loadSettingsToForm();
                 renderCalendar();
                 loadDayToForm(selectedDateStr);
                 populateMonthSelector();
-                populateCompareSelectors();
                 renderStats();
                 renderRecordsAndBadges();
-                renderGamification();
-                renderRateHistory();
-                renderActivityLogs();
-                applyUserSettings();
             }, (err) => console.error("Błąd Firebase:", err));
 
         function formatDate(d) {
@@ -208,12 +156,6 @@ document.addEventListener('DOMContentLoaded', () => {
             currentDate = new Date();
             selectedDateStr = formatDate(currentDate);
             updateMonthView();
-        });
-
-        // 18. Podgląd kalendarza w trybie kompaktowym
-        document.getElementById('toggle-compact-calendar')?.addEventListener('click', () => {
-            const grid = document.getElementById('calendar-grid');
-            if (grid) grid.classList.toggle('compact-view');
         });
 
         // WIZUALIZACJA KALENDARZA (Super Widoczna)
@@ -378,31 +320,6 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('daily-total-parcels').textContent = totalParcels;
             document.getElementById('daily-rate').textContent = `${totalEarn.toFixed(2)} zł ${tips > 0 ? `(w tym ${tips}zł tip)` : ''}`;
 
-            // 1. Przelicznik stawki za paczkę
-            const effectivePerParcel = totalParcels > 0 ? (totalEarn / totalParcels).toFixed(2) : "0.00";
-            const effEl = document.getElementById('daily-effective-rate-per-parcel');
-            if(effEl) effEl.textContent = `${effectivePerParcel} zł/paczka`;
-
-            // 6. Statystyka czasu na stop/paczkę
-            const timePerParcelMin = totalParcels > 0 ? (totalMinutes / totalParcels).toFixed(1) : "0.0";
-            const timeEl = document.getElementById('daily-time-per-parcel');
-            if(timeEl) timeEl.textContent = `${timePerParcelMin} min/paczka`;
-
-            // 7. Przewidywana godzina powrotu
-            if (startStr1 && totalParcels > 0 && !endStr1) {
-                const avgMinutesPerParcel = 2.5; // Domyślne tempo szacunkowe
-                const estTotalMinutes = totalParcels * avgMinutesPerParcel;
-                const [sH, sM] = startStr1.split(':').map(Number);
-                const estEndMins = (sH * 60 + sM + estTotalMinutes) % (24 * 60);
-                const estH = String(Math.floor(estEndMins / 60)).padStart(2, '0');
-                const estM = String(Math.round(estEndMins % 60)).padStart(2, '0');
-                const estReturnEl = document.getElementById('daily-est-return');
-                if(estReturnEl) estReturnEl.textContent = `~${estH}:${estM}`;
-            } else {
-                const estReturnEl = document.getElementById('daily-est-return');
-                if(estReturnEl) estReturnEl.textContent = `--:--`;
-            }
-
             if (totalHoursDecimal > 0) {
                 const pace = Math.round(totalParcels / totalHoursDecimal);
                 const hourlyRate = (totalEarn / totalHoursDecimal).toFixed(2);
@@ -453,8 +370,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 note: document.getElementById('daily-note')?.value || ''
             };
 
-            addActivityLog(`Zapisano dane dla dnia ${selectedDateStr}`);
-
             try {
                 await db.collection('kurier_app').doc('main_data').set(appData, { merge: true });
                 if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
@@ -468,7 +383,6 @@ document.addEventListener('DOMContentLoaded', () => {
             renderCalendar();
             loadDayToForm(selectedDateStr);
             populateMonthSelector();
-            populateCompareSelectors();
             renderStats();
         }
 
@@ -504,61 +418,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             select.value = visibleMonthStr;
             select.onchange = renderStats;
-        }
-
-        // 4. Porównywarka miesięcy (Selekcja)
-        function populateCompareSelectors() {
-            const selA = document.getElementById('compare-month-a');
-            const selB = document.getElementById('compare-month-b');
-            if (!selA || !selB) return;
-
-            const months = new Set();
-            if (appData.days) {
-                Object.keys(appData.days).forEach(d => months.add(d.substring(0, 7)));
-            }
-            const arr = Array.from(months).sort().reverse();
-            selA.innerHTML = ''; selB.innerHTML = '';
-
-            arr.forEach(m => {
-                selA.appendChild(new Option(m, m));
-                selB.appendChild(new Option(m, m));
-            });
-
-            if(arr.length > 1) selB.value = arr[1];
-            selA.onchange = renderMonthComparison;
-            selB.onchange = renderMonthComparison;
-            renderMonthComparison();
-        }
-
-        function renderMonthComparison() {
-            const mA = document.getElementById('compare-month-a')?.value;
-            const mB = document.getElementById('compare-month-b')?.value;
-            const resEl = document.getElementById('comparison-results');
-            if (!mA || !mB || !resEl) return;
-
-            const getStatsFor = (mStr) => {
-                let parcels = 0, earn = 0;
-                Object.entries(appData.days || {}).forEach(([d, data]) => {
-                    if (d.startsWith(mStr)) {
-                        const firstTotal = (parseInt(data.address)||0) + (parseInt(data.apmPudo||data.apm)||0) + (parseInt(data.awizo)||0) + (parseInt(data.pickups)||0);
-                        const secTotal = data.secondShift ? ((parseInt(data.secondAddress)||0) + (parseInt(data.secondApmPudo)||0) + (parseInt(data.secondPickups)||0)) : 0;
-                        parcels += (firstTotal + secTotal);
-                        earn += calculateDayRate(firstTotal, data.secondShift, data.secondShiftRate) + (parseFloat(data.tips)||0);
-                    }
-                });
-                return { parcels, earn };
-            };
-
-            const statsA = getStatsFor(mA);
-            const statsB = getStatsFor(mB);
-
-            resEl.innerHTML = `
-                <div class="compare-card">
-                    <h4>${mA} vs ${mB}</h4>
-                    <p>Paczki: <b>${statsA.parcels}</b> vs <b>${statsB.parcels}</b> (${statsA.parcels - statsB.parcels >= 0 ? '+' : ''}${statsA.parcels - statsB.parcels})</p>
-                    <p>Zarobek: <b>${statsA.earn.toFixed(2)} zł</b> vs <b>${statsB.earn.toFixed(2)} zł</b> (${(statsA.earn - statsB.earn).toFixed(2)} zł)</p>
-                </div>
-            `;
         }
 
         function renderStats() {
@@ -609,17 +468,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const mPace = mTotalHoursDecimal > 0 ? Math.round(mTotalParcels / mTotalHoursDecimal) : 0;
             const mHourlyRate = mTotalHoursDecimal > 0 ? ((mEarnings + mTips) / mTotalHoursDecimal).toFixed(2) : "0.00";
 
-            // 3. Średnia dniówka
-            const avgDailyEarn = mWorkingDays > 0 ? ((mEarnings + mTips) / mWorkingDays).toFixed(2) : "0.00";
-            const avgDailyEl = document.getElementById('stat-avg-daily');
-            if(avgDailyEl) avgDailyEl.textContent = `${avgDailyEarn} zł`;
-
-            // 8. Średnia liczba godzin na tydzień
-            const weeksInMonth = 4.33;
-            const avgWeeklyHours = (mHours / weeksInMonth).toFixed(1);
-            const weeklyHoursEl = document.getElementById('stat-avg-weekly-hours');
-            if(weeklyHoursEl) weeklyHoursEl.textContent = `${avgWeeklyHours} h/tydzien`;
-
             const now = new Date();
             const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
             const forecast = mWorkingDays > 0 ? ((mEarnings + mTips) / mWorkingDays) * Math.min(daysInMonth, 22) : 0;
@@ -655,7 +503,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 diffInput.style.color = 'inherit';
             }
 
-            // 11. Porównywanie się z wyzwanym celem
             const goalInput = document.getElementById('monthly-goal-input');
             const goal = parseFloat(goalInput.value) || 6000;
             const totalWithTips = mEarnings + mTips;
@@ -677,8 +524,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!appData.payouts) appData.payouts = {};
             appData.payouts[selectedMonth] = val;
 
-            addActivityLog(`Zapisano przelew za miesiąc ${selectedMonth}: ${val} zł`);
-
             try {
                 await db.collection('kurier_app').doc('main_data').set(appData, { merge: true });
                 renderStats();
@@ -687,72 +532,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert('Błąd zapisu: ' + err.message);
             }
         });
-
-        // 2. Eksport do PDF (wykorzystanie jsPDF w oknie roboczym)
-        document.getElementById('export-pdf-btn')?.addEventListener('click', () => {
-            const select = document.getElementById('stats-month-select');
-            const selectedMonth = select ? select.value : formatDate(currentDate).substring(0, 7);
-            let reportText = `RAPORT KURIERSKI - MIESIĄC: ${selectedMonth}\n`;
-            reportText += `----------------------------------------\n`;
-            reportText += `Adresy: ${document.getElementById('stat-address')?.textContent}\n`;
-            reportText += `APM/PUDO: ${document.getElementById('stat-apm-pudo')?.textContent}\n`;
-            reportText += `Awiza: ${document.getElementById('stat-awizo')?.textContent}\n`;
-            reportText += `Odbiory: ${document.getElementById('stat-pickups')?.textContent}\n`;
-            reportText += `Suma Paczek: ${document.getElementById('stat-monthly-parcels')?.textContent}\n`;
-            reportText += `Wypracowana Stawka: ${document.getElementById('stat-monthly-earnings')?.textContent}\n`;
-            reportText += `Napiwki: ${document.getElementById('stat-monthly-tips')?.textContent}\n`;
-            
-            const element = document.createElement('a');
-            const file = new Blob([reportText], {type: 'text/plain'});
-            element.href = URL.createObjectURL(file);
-            element.download = `Raport_Kurier_${selectedMonth}.txt`;
-            document.body.appendChild(element);
-            element.click();
-            document.body.removeChild(element);
-
-            addActivityLog(`Wygenerowano raport miesięczny dla ${selectedMonth}`);
-        });
-
-        // 9. Rangi i Poziomy & 10. KurierCoiny & 12. Hall of Fame
-        function renderGamification() {
-            let totalParcelsAllTime = 0;
-            let totalEarningsAllTime = 0;
-
-            if (appData.days) {
-                Object.values(appData.days).forEach(d => {
-                    const firstShiftTotal = (parseInt(d.address, 10)||0) + (parseInt(d.apmPudo||d.apm, 10)||0) + (parseInt(d.awizo, 10)||0) + (parseInt(d.pickups, 10)||0);
-                    const secTotal = d.secondShift ? ((parseInt(d.secondAddress, 10)||0) + (parseInt(d.secondApmPudo, 10)||0) + (parseInt(d.secondPickups, 10)||0)) : 0;
-                    totalParcelsAllTime += (firstShiftTotal + secTotal);
-                    totalEarningsAllTime += calculateDayRate(firstShiftTotal, d.secondShift, d.secondShiftRate) + (parseFloat(d.tips)||0);
-                });
-            }
-
-            // Rangi
-            let rank = "Nowicjusz";
-            let level = Math.floor(totalParcelsAllTime / 200) + 1;
-            if (totalParcelsAllTime > 5000) rank = "Mistrz Trasy";
-            else if (totalParcelsAllTime > 2000) rank = "Weteran Rejonu";
-            else if (totalParcelsAllTime > 500) rank = "Szybki Kurier";
-
-            const rankEl = document.getElementById('user-rank-display');
-            if(rankEl) rankEl.textContent = `${rank} (Lvl ${level})`;
-
-            // KurierCoiny (1 Coin za każde 5 paczek)
-            const coins = Math.floor(totalParcelsAllTime / 5);
-            const coinsEl = document.getElementById('user-coins-display');
-            if(coinsEl) coinsEl.textContent = `${coins} 🪙`;
-
-            // Hall of Fame
-            const hofEl = document.getElementById('hall-of-fame-list');
-            if (hofEl) {
-                hofEl.innerHTML = `
-                    <ol>
-                        <li>🏆 ${getSettings().userName} - Zarobek łącznie: ${totalEarningsAllTime.toFixed(0)} zł</li>
-                        <li>🥈 Legendarny Kurier - 50,000 Paczek</li>
-                    </ol>
-                `;
-            }
-        }
 
         function renderRecordsAndBadges() {
             let maxParcels = 0, maxTip = 0, maxEarning = 0, maxPace = 0;
@@ -819,17 +598,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // 5. Pamietanie historii stawek
-        function renderRateHistory() {
-            const container = document.getElementById('rate-history-container');
-            if (!container || !appData.rateHistory) return;
-            container.innerHTML = appData.rateHistory.map(h => `
-                <div class="rate-history-item">
-                    <small>${h.date}</small>: T1: ${h.rateTier1}zł | T2: ${h.rateTier2}zł | T3: ${h.rateTier3}zł
-                </div>
-            `).join('');
-        }
-
         function loadSettingsToForm() {
             const set = getSettings();
             document.getElementById('cfg-rate-tier1').value = set.rateTier1;
@@ -838,115 +606,31 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('cfg-tier3-limit').value = set.tier3Limit;
             document.getElementById('cfg-rate-tier3').value = set.rateTier3;
             document.getElementById('cfg-default-sec-rate').value = set.defaultSecRate;
-            
-            // 17. Personalizowany nagłówek
-            const nameInput = document.getElementById('cfg-user-name');
-            if (nameInput) nameInput.value = set.userName;
         }
-
-        // 13. Tryb ciemny / jasny / OLED & 14. Wybór kolorów motywu & 15. Chowanie wrażliwych danych
-        function applyUserSettings() {
-            const set = getSettings();
-            document.body.setAttribute('data-theme', set.theme || 'dark');
-
-            const headerTitle = document.getElementById('personalized-header-title');
-            if (headerTitle) headerTitle.textContent = `Panel Kuriera: ${set.userName || 'Kurier'}`;
-        }
-
-        // 15. Chowanie wrażliwych danych (Toggle Masking)
-        document.getElementById('toggle-sensitive-data')?.addEventListener('click', () => {
-            document.body.classList.toggle('mask-sensitive');
-        });
 
         document.getElementById('settings-form')?.addEventListener('submit', async (e) => {
             e.preventDefault();
             const newPin = document.getElementById('cfg-pin').value.trim();
-            const userName = document.getElementById('cfg-user-name')?.value.trim() || "Kurier";
-            const theme = document.getElementById('cfg-theme-select')?.value || "dark";
 
-            const newSettings = {
+            appData.settings = {
                 rateTier1: parseFloat(document.getElementById('cfg-rate-tier1').value) || 240,
                 tier2Limit: parseInt(document.getElementById('cfg-tier2-limit').value, 10) || 200,
                 rateTier2: parseFloat(document.getElementById('cfg-rate-tier2').value) || 270,
                 tier3Limit: parseInt(document.getElementById('cfg-tier3-limit').value, 10) || 301,
                 rateTier3: parseFloat(document.getElementById('cfg-rate-tier3').value) || 300,
                 defaultSecRate: parseFloat(document.getElementById('cfg-default-sec-rate').value) || 180,
-                pin: newPin !== "" ? newPin : (appData.settings?.pin || "1234"),
-                userName: userName,
-                theme: theme
+                pin: newPin !== "" ? newPin : (appData.settings?.pin || "1234")
             };
-
-            // 5. Zapis historii stawek przy zmianie
-            if (!appData.rateHistory) appData.rateHistory = [];
-            appData.rateHistory.unshift({
-                date: new Date().toLocaleDateString('pl-PL'),
-                ...newSettings
-            });
-
-            appData.settings = newSettings;
-            addActivityLog("Zaktualizowano ustawienia profilu i stawek");
 
             try {
                 await db.collection('kurier_app').doc('main_data').set(appData, { merge: true });
                 alert('Ustawienia i progi zostały pomyślnie zapisane!');
-                applyUserSettings();
                 renderCalendar();
                 calculateDailyTotals();
                 renderStats();
-                renderRateHistory();
             } catch(err) {
                 alert('Błąd zapisu ustawień: ' + err.message);
             }
-        });
-
-        // 19. Kopia zapasowa do pliku JSON
-        document.getElementById('export-json-btn')?.addEventListener('click', () => {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appData, null, 2));
-            const dlAnchorElem = document.createElement('a');
-            dlAnchorElem.setAttribute("href", dataStr);
-            dlAnchorElem.setAttribute("download", `kurier_app_backup_${formatDate(new Date())}.json`);
-            dlAnchorElem.click();
-            addActivityLog("Pobrano lokalną kopię zapasową JSON");
-        });
-
-        // Import JSON Backup
-        document.getElementById('import-json-input')?.addEventListener('change', (e) => {
-            const fileReader = new FileReader();
-            fileReader.onload = async (event) => {
-                try {
-                    const importedData = JSON.parse(event.target.result);
-                    if (importedData && (importedData.days || importedData.settings)) {
-                        appData = importedData;
-                        await db.collection('kurier_app').doc('main_data').set(appData);
-                        alert('Pomyślnie zaimportowano kopię zapasową!');
-                        location.reload();
-                    }
-                } catch(err) {
-                    alert('Błąd odczytu pliku kopii: ' + err.message);
-                }
-            };
-            if(e.target.files[0]) fileReader.readAsText(e.target.files[0]);
-        });
-
-        // 20. Automatyczny backup w chmurze
-        async function autoCloudBackup() {
-            try {
-                await db.collection('kurier_app_backups').doc(`backup_${formatDate(new Date())}`).set({
-                    ...appData,
-                    autoBackupTimestamp: new Date().toISOString()
-                });
-                console.log("Auto-backup cloud success");
-            } catch(e) {
-                console.error("Auto cloud backup failed", e);
-            }
-        }
-        // Wywołaj auto backup raz przy starcie sesji
-        setTimeout(autoCloudBackup, 10000);
-
-        // 23. Instrukcja / FAQ Toggle
-        document.getElementById('faq-toggle-btn')?.addEventListener('click', () => {
-            const faqBox = document.getElementById('faq-container');
-            if (faqBox) faqBox.style.display = (faqBox.style.display === 'none') ? 'block' : 'none';
         });
     }
 });

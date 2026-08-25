@@ -12,17 +12,19 @@
     <header>
         <div class="user-welcome">
             <h1 id="userHeader">Witaj, Kurierze!</h1>
-            <p id="rankTitle">Ranga: Nowicjusz Szos | Poziom <span id="userLevel">1</span></p>
+            <h1 id="personalized-header-title" style="display:none;">Witaj!</h1>
+            <p id="rankTitle">Ranga: <span id="user-rank-display">Nowicjusz Szos</span> | Poziom <span id="userLevel">1</span></p>
         </div>
         <div class="header-controls">
             <div class="badge">
-                🪙 <span id="userCoins">0</span> KC
+                🪙 <span id="userCoins">0</span> <span id="user-coins-display" style="display:none;">0</span> KC
             </div>
-            <div class="badge">
-                <div class="status-dot" id="cloudStatusDot"></div>
+            <div class="badge" id="cloud-status-indicator">
+                <div class="status-dot status-online" id="cloudStatusDot"></div>
                 <span id="cloudStatusText">Online</span>
             </div>
             <button class="btn btn-secondary" id="toggleEyeBtn">👁️ Śledzenie</button>
+            <button class="btn btn-secondary" id="toggle-sensitive-data" style="display:none;">🙈 Maskowanie</button>
         </div>
     </header>
 
@@ -34,12 +36,15 @@
         <button class="nav-btn" data-tab="gamification">Grywalizacja & Rekordy</button>
         <button class="nav-btn" data-tab="history">Historia Stawek & Raporty</button>
         <button class="nav-btn" data-tab="settings">Ustawienia & Backup</button>
-        <button class="nav-btn" data-tab="faq">Instrukcja / FAQ</button>
+        <button class="nav-btn" data-tab="faq" id="faq-toggle-btn">Instrukcja / FAQ</button>
     </nav>
 
     <!-- Content -->
     <main>
         <!-- Kompaktowy Podgląd Kalendarza -->
+        <div class="flex-between mb-2">
+            <button class="btn btn-secondary" id="toggle-compact-calendar">📅 Przełącz Widok Kalendarza</button>
+        </div>
         <div class="calendar-bar" id="calendarBar"></div>
 
         <!-- ZAKŁADKA 1: DASHBOARD -->
@@ -51,7 +56,8 @@
                         <span>💰</span>
                     </div>
                     <div class="card-value sensitive" id="dashAvgDaily">0.00 zł</div>
-                    <div class="card-subtext" id="dashAvgRatePerPkg">Śr. na paczkę: 0.00 zł</div>
+                    <span id="stat-avg-daily" style="display:none;"></span>
+                    <div class="card-subtext" id="dashAvgRatePerPkg">Śr. na paczkę: <span id="daily-effective-rate-per-parcel">0.00</span> zł</div>
                 </div>
 
                 <div class="card">
@@ -60,6 +66,7 @@
                         <span>⏱️</span>
                     </div>
                     <div class="card-value" id="dashEstReturn">--:--</div>
+                    <span id="daily-est-return" style="display:none;"></span>
                     <div class="card-subtext" id="dashPace">Tempo: 0 stopów/h</div>
                 </div>
 
@@ -69,6 +76,7 @@
                         <span>⚡</span>
                     </div>
                     <div class="card-value" id="dashTimePerStop">0 min</div>
+                    <span id="daily-time-per-parcel" style="display:none;"></span>
                     <div class="card-subtext">Statystyka z dzisiaj</div>
                 </div>
 
@@ -78,6 +86,7 @@
                         <span>📅</span>
                     </div>
                     <div class="card-value" id="dashWeeklyHours">0h</div>
+                    <span id="stat-avg-weekly-hours" style="display:none;"></span>
                     <div class="card-subtext">Średnia tygodniowa</div>
                 </div>
             </div>
@@ -143,13 +152,16 @@
                     <div class="form-group">
                         <label>Miesiąc A</label>
                         <input type="month" id="monthA" value="2026-07">
+                        <select id="compare-month-a" style="display:none;"></select>
                     </div>
                     <div class="form-group">
                         <label>Miesiąc B</label>
                         <input type="month" id="monthB" value="2026-08">
+                        <select id="compare-month-b" style="display:none;"></select>
                     </div>
                 </div>
                 <div id="comparisonResults" class="mt-2"></div>
+                <div id="comparison-results" style="display:none;"></div>
             </div>
         </div>
 
@@ -171,6 +183,7 @@
                 <div class="card">
                     <h2>Hall of Fame (Rekordy)</h2>
                     <ul class="hall-of-fame-list mt-1" id="hallOfFameList"></ul>
+                    <div id="hall-of-fame-list" style="display:none;"></div>
                 </div>
             </div>
         </div>
@@ -197,7 +210,8 @@
                         <input type="number" step="0.01" id="rateAwizo" value="1.00">
                     </div>
                 </div>
-                <button class="btn" id="saveRatesBtn">Zapisz Nowe Stawki w Historii</button>
+                <button class="btn mb-2" id="saveRatesBtn">Zapisz Nowe Stawki w Historii</button>
+                <div id="rate-history-container" class="mt-2"></div>
             </div>
 
             <div class="card">
@@ -208,6 +222,7 @@
                     <input type="month" id="exportMonth" value="2026-08">
                 </div>
                 <button class="btn" id="exportPdfBtn">📄 Wygeneruj Raport PDF</button>
+                <button class="btn" id="export-pdf-btn" style="display:none;">PDF</button>
             </div>
         </div>
 
@@ -223,6 +238,7 @@
                             <option value="light">Jasny (Light)</option>
                             <option value="oled">OLED Czarny</option>
                         </select>
+                        <select id="cfg-theme-select" style="display:none;"></select>
                     </div>
                     <div class="form-group">
                         <label>Kolor Akcentu</label>
@@ -236,31 +252,41 @@
                     <div class="form-group">
                         <label>Imię Kuriera</label>
                         <input type="text" id="userNameInput" value="Jan">
+                        <input type="text" id="cfg-user-name" style="display:none;">
                     </div>
                 </div>
             </div>
 
             <div class="card mb-2">
                 <h2>Kopia Zapasowa (JSON & Chmura)</h2>
-                <div class="flex-between mt-2">
+                <div class="flex-between mt-2" style="flex-wrap: wrap; gap: 0.5rem;">
                     <button class="btn" id="exportJsonBtn">📥 Pobierz Kopię JSON</button>
-                    <button class="btn btn-secondary" id="importJsonBtn">📤 Wczytaj z Pliku JSON</button>
+                    <button class="btn" id="export-json-btn" style="display:none;"></button>
+                    
+                    <label for="import-json-input" class="btn btn-secondary" style="cursor: pointer; margin-bottom: 0;">
+                        📤 Wczytaj z Pliku JSON
+                    </label>
+                    <input type="file" id="import-json-input" accept=".json" style="display: none;">
+                    <button class="btn btn-secondary" id="importJsonBtn" style="display:none;">Import</button>
+                    
                     <button class="btn btn-secondary" id="cloudSyncBtn">☁️ Wymuś Auto-Backup Chmury</button>
                 </div>
             </div>
 
             <div class="card">
                 <h2>Logi Aktywności Systemu</h2>
-                <table id="activityLogTable">
-                    <thead>
-                        <tr>
-                            <th>Czas</th>
-                            <th>Akcja</th>
-                            <th>Szczegóły</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
+                <div id="activity-logs-container" class="mt-2">
+                    <table id="activityLogTable">
+                        <thead>
+                            <tr>
+                                <th>Czas</th>
+                                <th>Akcja</th>
+                                <th>Szczegóły</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
@@ -268,7 +294,7 @@
         <div id="tab-faq" class="tab-content">
             <div class="card">
                 <h2>Instrukcja Obsługi & FAQ</h2>
-                <div class="mt-2">
+                <div id="faq-container" class="mt-2">
                     <h3>1. Jak wyliczana jest Przewidywana Godzina Powrotu?</h3>
                     <p class="card-subtext mb-2">Aplikacja bierze pod uwagę przepracowane godziny, dotychczasowe średnie tempo i liczbę paczek pozostałych do doręczenia.</p>
 

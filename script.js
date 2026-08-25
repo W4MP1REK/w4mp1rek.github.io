@@ -37,10 +37,11 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const inputPin = String(document.getElementById('pin-input').value).trim();
             try {
-                const doc = await db.collection('kurier_app').doc('settings').get();
+                // POPRAWKA: Sprawdzamy PIN w głównym dokumencie danych
+                const doc = await db.collection('kurier_app').doc('main_data').get();
                 let validPin = "1234";
-                if (doc.exists && doc.data().pin !== undefined) {
-                    validPin = String(doc.data().pin).trim();
+                if (doc.exists && doc.data().settings && doc.data().settings.pin !== undefined) {
+                    validPin = String(doc.data().settings.pin).trim();
                 }
                 if (inputPin === validPin) {
                     sessionStorage.setItem('auth_ok', 'true');
@@ -158,7 +159,6 @@ document.addEventListener('DOMContentLoaded', () => {
             updateMonthView();
         });
 
-        // WIZUALIZACJA KALENDARZA (Super Widoczna)
         function renderCalendar() {
             const grid = document.getElementById('calendar-grid');
             const monthTitle = document.getElementById('calendar-month-year');
@@ -205,20 +205,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (dayData) {
                     const firstShiftTotal = (parseInt(dayData.address, 10)||0) + (parseInt(dayData.apmPudo||dayData.apm, 10)||0) + (parseInt(dayData.awizo, 10)||0) + (parseInt(dayData.pickups, 10)||0);
 
-                    // 1 & 2. Oznaczenie kolorem całego dnia (Pracowany + Progi)
                     if (firstShiftTotal >= set.tier3Limit) {
-                        cell.classList.add('tier-high'); // 300+ paczek (Jaskrawy Zielony)
+                        cell.classList.add('tier-high');
                     } else if (firstShiftTotal >= set.tier2Limit) {
-                        cell.classList.add('tier-mid');  // 200-300 paczek (Wyrazisty Niebieski)
+                        cell.classList.add('tier-mid');
                     } else if (firstShiftTotal > 0 || dayData.secondShift) {
-                        cell.classList.add('tier-low');  // Poniżej 200 paczek / tylko 2 zmiana (Szary/Ciemno-niebieski)
+                        cell.classList.add('tier-low');
                     }
 
-                    // 4. Czytelna Ikona Notatki
                     const hasNote = dayData.note && dayData.note.trim() !== "";
                     const noteHtml = hasNote ? `<span class="note-badge">📝</span>` : '';
-
-                    // 3. Wyrazisty Znaczek 2. Zmiany
                     const secondShiftHtml = dayData.secondShift ? `<span class="second-shift-tag">2Z</span>` : '';
 
                     cell.innerHTML = `
@@ -468,8 +464,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const mPace = mTotalHoursDecimal > 0 ? Math.round(mTotalParcels / mTotalHoursDecimal) : 0;
             const mHourlyRate = mTotalHoursDecimal > 0 ? ((mEarnings + mTips) / mTotalHoursDecimal).toFixed(2) : "0.00";
 
-            const now = new Date();
-            const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+            // POPRAWKA: Dynamiczne obliczanie liczby dni dla wybranego miesiąca ze statystyk
+            const [selYear, selMonth] = selectedMonth.split('-').map(Number);
+            const daysInMonth = new Date(selYear, selMonth, 0).getDate();
             const forecast = mWorkingDays > 0 ? ((mEarnings + mTips) / mWorkingDays) * Math.min(daysInMonth, 22) : 0;
             document.getElementById('stat-forecast').textContent = `~${forecast.toFixed(2)} zł`;
 
@@ -504,7 +501,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const goalInput = document.getElementById('monthly-goal-input');
-            const goal = parseFloat(goalInput.value) || 6000;
+            const goal = parseFloat(goalInput?.value) || 6000;
             const totalWithTips = mEarnings + mTips;
             const progress = Math.min(Math.round((totalWithTips / goal) * 100), 100);
 
@@ -624,6 +621,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 await db.collection('kurier_app').doc('main_data').set(appData, { merge: true });
+                document.getElementById('cfg-pin').value = ''; // Czyszczenie pola PIN dla bezpieczeństwa
                 alert('Ustawienia i progi zostały pomyślnie zapisane!');
                 renderCalendar();
                 calculateDailyTotals();

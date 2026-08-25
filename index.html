@@ -4,22 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aplikacja Kuriera</title>
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Kurier">
+
+    <link rel="icon" type="image/svg+xml" href="icon.svg">
+    <link rel="apple-touch-icon" href="icon.svg">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1e293b">
+    
     <link rel="stylesheet" href="style.css">
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-<!-- Domyślny wygląd i tryb aplikacji dla iOS Safari -->
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Kurier">
-
-<!-- Ikona dla przeglądarki i Safari -->
-<link rel="icon" type="image/svg+xml" href="icon.svg">
-<link rel="apple-touch-icon" href="icon.svg">
-
-<!-- Manifest dla Chrome/Safari -->
-<link rel="manifest" href="manifest.json">
 </head>
 <body>
 
@@ -131,6 +128,8 @@
                         <p>Czas pracy (łącznie): <strong id="daily-hours">0h 0m</strong></p>
                         <p>Łącznie paczek: <strong id="daily-total-parcels">0</strong></p>
                         <p>Zarobek + Tipy: <strong id="daily-rate">0.00 zł</strong></p>
+                        <p>Tempo dnia: <strong id="daily-pace">0 paczek/h</strong></p>
+                        <p>Średnia stawkowa: <strong id="daily-hourly-rate">0.00 zł/h</strong></p>
                     </div>
 
                     <button type="submit" style="margin-top: 15px;">Zapisz dzień</button>
@@ -165,8 +164,20 @@
                         <strong id="stat-monthly-tips">0.00 zł</strong>
                     </div>
                     <div class="stat-item">
+                        <span>Przepracowane dni:</span>
+                        <strong id="stat-monthly-days">0 dni</strong>
+                    </div>
+                    <div class="stat-item">
                         <span>Godziny w miesiącu:</span>
                         <strong id="stat-monthly-hours">0h</strong>
+                    </div>
+                    <div class="stat-item">
+                        <span>Średnie tempo:</span>
+                        <strong id="stat-monthly-pace">0 paczek/h</strong>
+                    </div>
+                    <div class="stat-item">
+                        <span>Średnia stawkowa:</span>
+                        <strong id="stat-monthly-hourly-rate">0.00 zł/h</strong>
                     </div>
                     <div class="stat-item">
                         <span>Suma paczek:</span>

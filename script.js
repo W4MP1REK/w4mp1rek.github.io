@@ -17,13 +17,60 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('login-form');
     const logoutBtn = document.getElementById('logout-btn');
 
+    let isPrivacyMode = false;
+    let activityLogs = [];
+
+    // --- SYSTEM LOGÓW ---
+    function logActivity(text) {
+        const time = new Date().toLocaleTimeString();
+        activityLogs.unshift(`[${time}] ${text}`);
+        if (activityLogs.length > 20) activityLogs.pop();
+        renderActivityLogs();
+    }
+
+    function renderActivityLogs() {
+        const list = document.getElementById('activity-log-list');
+        if (list) {
+            list.innerHTML = activityLogs.map(log => `<li>${log}</li>`).join('');
+        }
+    }
+
+    // --- MONITOROWANIE SIECI & FIREBASE ---
+    function updateOnlineStatus() {
+        const statusEl = document.getElementById('cloud-status');
+        if (!statusEl) return;
+        if (navigator.onLine) {
+            statusEl.textContent = 'Online';
+            statusEl.className = 'status-badge online';
+        } else {
+            statusEl.textContent = 'Offline (Tryb lokalny)';
+            statusEl.className = 'status-badge offline';
+        }
+    }
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+    updateOnlineStatus();
+
+    // --- PRZEŁĄCZANIE ZAKŁADEK Z ANIMACJĄ ---
     document.querySelectorAll('.nav-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => {
+                t.classList.remove('active', 'fade-in');
+            });
             btn.classList.add('active');
-            document.getElementById(btn.dataset.tab).classList.add('active');
+            const targetTab = document.getElementById(btn.dataset.tab);
+            if (targetTab) {
+                targetTab.classList.add('active', 'fade-in');
+            }
         });
+    });
+
+    // --- OCHRONA WRAŻLIWYCH DANYCH ---
+    document.getElementById('toggle-privacy-btn')?.addEventListener('click', () => {
+        isPrivacyMode = !isPrivacyMode;
+        document.body.classList.toggle('privacy-active', isPrivacyMode);
+        logActivity(`Przełączono tryb prywatności: ${isPrivacyMode ? 'Włączony' : 'Wyłączony'}`);
     });
 
     if (sessionStorage.getItem('auth_ok') === 'true') {
@@ -37,7 +84,6 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const inputPin = String(document.getElementById('pin-input').value).trim();
             try {
-                // POPRAWKA: Sprawdzamy PIN w głównym dokumencie danych
                 const doc = await db.collection('kurier_app').doc('main_data').get();
                 let validPin = "1234";
                 if (doc.exists && doc.data().settings && doc.data().settings.pin !== undefined) {
@@ -45,6 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 if (inputPin === validPin) {
                     sessionStorage.setItem('auth_ok', 'true');
+                    logActivity("Użytkownik zalogował się pomyślnie.");
                     showApp();
                 } else {
                     alert('Błędny PIN!');
@@ -77,7 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function initApp() {
         let currentDate = new Date();
         let selectedDateStr = formatDate(currentDate);
-        let appData = { days: {}, payouts: {}, settings: {} };
+        let appData = { days: {}, payouts: {}, settings: {}, ratesHistory: [] };
 
         function getSettings() {
             const cfg = appData.settings || {};
@@ -88,13 +135,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 tier3Limit: parseInt(cfg.tier3Limit, 10) || 301,
                 rateTier3: parseFloat(cfg.rateTier3) || 300,
                 defaultSecRate: parseFloat(cfg.defaultSecRate) || 180,
-                pin: cfg.pin || "1234"
+                pin: cfg.pin || "1234",
+                theme: cfg.theme || "dark",
+                accentColor: cfg.accentColor || "#3b82f6",
+                compactCalendar: !!cfg.compactCalendar
             };
         }
 
-        function calculateDayRate(firstShiftTotal, hasSecondShift = false, secondShiftRate = 0) {
+        // HEURYSTYKA HISTORII STAWEK: Szuka stawek obowiązujących w danej dacie
+        function getEffectiveSettingsForDate(dateStr) {
+            const defaultSet = getSettings();
+            if (!appData.ratesHistory || appData.ratesHistory.length === 0) {
+                return defaultSet;
+            }
+            const sortedHistory = [...appData.ratesHistory].sort((a, b) => new Date(b.effectiveFrom) - new Date(a.effectiveFrom));
+            const matched = sortedHistory.find(h => h.effectiveFrom <= dateStr);
+            return matched ? { ...defaultSet, ...matched } : defaultSet;
+        }
+
+        function calculateDayRate(firstShiftTotal, hasSecondShift = false, secondShiftRate = 0, dateStr = null) {
             const count = parseInt(firstShiftTotal, 10) || 0;
-            const set = getSettings();
+            const set = dateStr ? getEffectiveSettingsForDate(dateStr) : getSettings();
             let rate = 0;
 
             if (count > 0) {
@@ -126,7 +187,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     appData.days = data.days || {};
                     appData.payouts = data.payouts || {};
                     appData.settings = data.settings || {};
+                    appData.ratesHistory = data.ratesHistory || [];
                 }
+                applyTheme();
                 loadSettingsToForm();
                 renderCalendar();
                 loadDayToForm(selectedDateStr);
@@ -140,6 +203,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const month = String(d.getMonth() + 1).padStart(2, '0');
             const day = String(d.getDate()).padStart(2, '0');
             return `${year}-${month}-${day}`;
+        }
+
+        // SYSTEM MOTYWÓW
+        function applyTheme() {
+            const set = getSettings();
+            document.body.setAttribute('data-theme', set.theme);
+            document.documentElement.style.setProperty('--primary-color', set.accentColor);
+            
+            const calGrid = document.getElementById('calendar-grid');
+            if (calGrid) {
+                calGrid.classList.toggle('compact-view', set.compactCalendar);
+            }
         }
 
         document.querySelectorAll('.btn-now').forEach(btn => {
@@ -189,12 +264,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 grid.appendChild(empty);
             }
 
-            const set = getSettings();
-
             for (let day = 1; day <= totalDays; day++) {
                 const mStr = String(month + 1).padStart(2, '0');
                 const dStr = String(day).padStart(2, '0');
                 const dateStr = `${year}-${mStr}-${dStr}`;
+                const set = getEffectiveSettingsForDate(dateStr);
                 
                 const cell = document.createElement('div');
                 cell.className = 'calendar-day';
@@ -205,23 +279,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (dayData) {
                     const firstShiftTotal = (parseInt(dayData.address, 10)||0) + (parseInt(dayData.apmPudo||dayData.apm, 10)||0) + (parseInt(dayData.awizo, 10)||0) + (parseInt(dayData.pickups, 10)||0);
 
-                    if (firstShiftTotal >= set.tier3Limit) {
-                        cell.classList.add('tier-high');
-                    } else if (firstShiftTotal >= set.tier2Limit) {
-                        cell.classList.add('tier-mid');
-                    } else if (firstShiftTotal > 0 || dayData.secondShift) {
-                        cell.classList.add('tier-low');
-                    }
+                    if (firstShiftTotal >= set.tier3Limit) cell.classList.add('tier-high');
+                    else if (firstShiftTotal >= set.tier2Limit) cell.classList.add('tier-mid');
+                    else if (firstShiftTotal > 0 || dayData.secondShift) cell.classList.add('tier-low');
 
                     const hasNote = dayData.note && dayData.note.trim() !== "";
                     const noteHtml = hasNote ? `<span class="note-badge">📝</span>` : '';
                     const secondShiftHtml = dayData.secondShift ? `<span class="second-shift-tag">2Z</span>` : '';
 
-                    cell.innerHTML = `
-                        ${noteHtml}
-                        <span>${day}</span>
-                        ${secondShiftHtml}
-                    `;
+                    cell.innerHTML = `${noteHtml}<span>${day}</span>${secondShiftHtml}`;
                 } else {
                     cell.innerHTML = `<span>${day}</span>`;
                 }
@@ -241,7 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const title = document.getElementById('selected-date-title');
             if (title) title.textContent = `Wybrany dzień: ${dateStr}`;
 
-            const set = getSettings();
+            const set = getEffectiveSettingsForDate(dateStr);
             const dayData = (appData.days && appData.days[dateStr]) 
                 ? appData.days[dateStr] 
                 : { 
@@ -310,11 +376,24 @@ document.addEventListener('DOMContentLoaded', () => {
             const secondShiftTotal = secAddr + secApmPudo + secPick;
             const totalParcels = firstShiftTotal + secondShiftTotal;
 
-            const baseRate = calculateDayRate(firstShiftTotal, hasSecondShift, secRate);
+            const baseRate = calculateDayRate(firstShiftTotal, hasSecondShift, secRate, selectedDateStr);
             const totalEarn = baseRate + tips;
 
             document.getElementById('daily-total-parcels').textContent = totalParcels;
-            document.getElementById('daily-rate').textContent = `${totalEarn.toFixed(2)} zł ${tips > 0 ? `(w tym ${tips}zł tip)` : ''}`;
+            
+            // PRZELICZNIK STAWKI ZA PACZKĘ
+            const effectiveParcelRate = totalParcels > 0 ? (totalEarn / totalParcels).toFixed(2) : "0.00";
+            const rateDisplay = document.getElementById('daily-rate');
+            if (rateDisplay) {
+                rateDisplay.textContent = `${totalEarn.toFixed(2)} zł (${effectiveParcelRate} zł/paczka)`;
+            }
+
+            // CZAS NA STOP / PACZKĘ
+            const timePerParcelEl = document.getElementById('daily-time-per-parcel');
+            if (timePerParcelEl) {
+                const minsPerParcel = totalParcels > 0 ? (totalMinutes / totalParcels).toFixed(1) : "0";
+                timePerParcelEl.textContent = `${minsPerParcel} min/paczka`;
+            }
 
             if (totalHoursDecimal > 0) {
                 const pace = Math.round(totalParcels / totalHoursDecimal);
@@ -368,6 +447,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 await db.collection('kurier_app').doc('main_data').set(appData, { merge: true });
+                logActivity(`Zapisano raport dla dnia: ${selectedDateStr}`);
                 if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
                 alert('Zapisano dzień!');
             } catch(err) {
@@ -394,40 +474,48 @@ document.addEventListener('DOMContentLoaded', () => {
 
         function populateMonthSelector() {
             const select = document.getElementById('stats-month-select');
+            const comp1 = document.getElementById('compare-month-1');
+            const comp2 = document.getElementById('compare-month-2');
+            
             if (!select) return;
 
             const visibleMonthStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
-            select.innerHTML = '';
-
             const months = new Set();
             if (appData.days) {
                 Object.keys(appData.days).forEach(d => months.add(d.substring(0, 7)));
             }
             months.add(visibleMonthStr);
 
-            Array.from(months).sort().reverse().forEach(m => {
-                const opt = document.createElement('option');
-                opt.value = m;
-                opt.textContent = m;
-                select.appendChild(opt);
-            });
+            const sortedMonths = Array.from(months).sort().reverse();
+
+            const renderOptions = (targetSelect) => {
+                if (!targetSelect) return;
+                targetSelect.innerHTML = '';
+                sortedMonths.forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m;
+                    opt.textContent = m;
+                    targetSelect.appendChild(opt);
+                });
+            };
+
+            renderOptions(select);
+            renderOptions(comp1);
+            renderOptions(comp2);
 
             select.value = visibleMonthStr;
             select.onchange = renderStats;
         }
 
-        function renderStats() {
-            const select = document.getElementById('stats-month-select');
-            const selectedMonth = select ? select.value : formatDate(currentDate).substring(0, 7);
-
+        // AGREGACJA DANYCH MIESIĘCZNYCH
+        function getMonthMetrics(monthStr) {
             let mAddr = 0, mApmPudo = 0, mAwizo = 0, mPick = 0;
             let mEarnings = 0, mTips = 0, mMinutes = 0, mWorkingDays = 0, mSecondShiftDays = 0;
 
             if (appData.days) {
                 Object.entries(appData.days).forEach(([date, d]) => {
-                    if (date.startsWith(selectedMonth)) {
+                    if (date.startsWith(monthStr)) {
                         mWorkingDays++;
-
                         const addr = parseInt(d.address, 10) || 0;
                         const apmPudo = parseInt(d.apmPudo, 10) || (parseInt(d.apm, 10) || 0);
                         const awizo = parseInt(d.awizo, 10) || 0;
@@ -453,38 +541,67 @@ document.addEventListener('DOMContentLoaded', () => {
                         mMinutes += dayMinutes;
 
                         const firstShiftTotal = addr + apmPudo + awizo + pick;
-                        mEarnings += calculateDayRate(firstShiftTotal, hasSecondShift, secRate);
+                        mEarnings += calculateDayRate(firstShiftTotal, hasSecondShift, secRate, date);
                     }
                 });
             }
 
             const mTotalParcels = mAddr + mApmPudo + mAwizo + mPick;
-            const mHours = Math.round((mMinutes / 60) * 10) / 10;
-            const mTotalHoursDecimal = mMinutes / 60;
-            const mPace = mTotalHoursDecimal > 0 ? Math.round(mTotalParcels / mTotalHoursDecimal) : 0;
-            const mHourlyRate = mTotalHoursDecimal > 0 ? ((mEarnings + mTips) / mTotalHoursDecimal).toFixed(2) : "0.00";
+            const totalEarnWithTips = mEarnings + mTips;
+            const avgDailyEarn = mWorkingDays > 0 ? (totalEarnWithTips / mWorkingDays) : 0;
+            const avgTimePerParcel = mTotalParcels > 0 ? (mMinutes / mTotalParcels) : 0;
 
-            // POPRAWKA: Dynamiczne obliczanie liczby dni dla wybranego miesiąca ze statystyk
+            return {
+                mAddr, mApmPudo, mAwizo, mPick, mTotalParcels,
+                mEarnings, mTips, totalEarnWithTips, mMinutes,
+                mWorkingDays, mSecondShiftDays, avgDailyEarn, avgTimePerParcel
+            };
+        }
+
+        function renderStats() {
+            const select = document.getElementById('stats-month-select');
+            const selectedMonth = select ? select.value : formatDate(currentDate).substring(0, 7);
+            const metrics = getMonthMetrics(selectedMonth);
+
+            const mHours = Math.round((metrics.mMinutes / 60) * 10) / 10;
+            const mTotalHoursDecimal = metrics.mMinutes / 60;
+            const mPace = mTotalHoursDecimal > 0 ? Math.round(metrics.mTotalParcels / mTotalHoursDecimal) : 0;
+            const mHourlyRate = mTotalHoursDecimal > 0 ? (metrics.totalEarnWithTips / mTotalHoursDecimal).toFixed(2) : "0.00";
+
+            // WYLICZANIE TYGODNI I ŚREDNIEJ GODZIN NA TYDZIEŃ
+            const weeksInMonth = 4.33; 
+            const avgWeeklyHours = (mTotalHoursDecimal / weeksInMonth).toFixed(1);
+
             const [selYear, selMonth] = selectedMonth.split('-').map(Number);
             const daysInMonth = new Date(selYear, selMonth, 0).getDate();
-            const forecast = mWorkingDays > 0 ? ((mEarnings + mTips) / mWorkingDays) * Math.min(daysInMonth, 22) : 0;
+            const forecast = metrics.mWorkingDays > 0 ? (metrics.totalEarnWithTips / metrics.mWorkingDays) * Math.min(daysInMonth, 22) : 0;
+            
             document.getElementById('stat-forecast').textContent = `~${forecast.toFixed(2)} zł`;
-
-            document.getElementById('stat-monthly-earnings').textContent = `${mEarnings.toFixed(2)} zł`;
-            document.getElementById('stat-monthly-tips').textContent = `${mTips.toFixed(2)} zł`;
-            document.getElementById('stat-monthly-days').textContent = `${mWorkingDays} dni`;
-            document.getElementById('stat-second-shift-days').textContent = `${mSecondShiftDays} dni`;
+            document.getElementById('stat-monthly-earnings').textContent = `${metrics.mEarnings.toFixed(2)} zł`;
+            document.getElementById('stat-monthly-tips').textContent = `${metrics.mTips.toFixed(2)} zł`;
+            document.getElementById('stat-monthly-days').textContent = `${metrics.mWorkingDays} dni`;
+            document.getElementById('stat-second-shift-days').textContent = `${metrics.mSecondShiftDays} dni`;
             document.getElementById('stat-monthly-hours').textContent = `${mHours}h`;
             document.getElementById('stat-monthly-pace').textContent = `${mPace} paczek/h`;
             document.getElementById('stat-monthly-hourly-rate').textContent = `${mHourlyRate} zł/h`;
-            document.getElementById('stat-monthly-parcels').textContent = mTotalParcels;
-            document.getElementById('stat-address').textContent = mAddr;
-            document.getElementById('stat-apm-pudo').textContent = mApmPudo;
-            document.getElementById('stat-awizo').textContent = mAwizo;
-            document.getElementById('stat-pickups').textContent = mPick;
+            document.getElementById('stat-monthly-parcels').textContent = metrics.mTotalParcels;
+            document.getElementById('stat-address').textContent = metrics.mAddr;
+            document.getElementById('stat-apm-pudo').textContent = metrics.mApmPudo;
+            document.getElementById('stat-awizo').textContent = metrics.mAwizo;
+            document.getElementById('stat-pickups').textContent = metrics.mPick;
 
-            document.getElementById('calculated-payout').value = `${mEarnings.toFixed(2)} zł`;
+            // NOWE STATYSTYKI
+            const avgDailyEl = document.getElementById('stat-avg-daily');
+            if (avgDailyEl) avgDailyEl.textContent = `${metrics.avgDailyEarn.toFixed(2)} zł`;
 
+            const avgWeeklyEl = document.getElementById('stat-avg-weekly-hours');
+            if (avgWeeklyEl) avgWeeklyEl.textContent = `${avgWeeklyHours}h`;
+
+            const avgTimePerParcelEl = document.getElementById('stat-avg-time-per-parcel');
+            if (avgTimePerParcelEl) avgTimePerParcelEl.textContent = `${metrics.avgTimePerParcel.toFixed(1)} min`;
+
+            // PRZELEWY
+            document.getElementById('calculated-payout').value = `${metrics.mEarnings.toFixed(2)} zł`;
             const receivedInput = document.getElementById('received-payout');
             const diffInput = document.getElementById('payout-difference');
             
@@ -492,7 +609,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (receivedInput) receivedInput.value = recVal;
 
             if (recVal !== '') {
-                const diff = parseFloat(recVal) - mEarnings;
+                const diff = parseFloat(recVal) - metrics.mEarnings;
                 diffInput.value = `${diff >= 0 ? '+' : ''}${diff.toFixed(2)} zł`;
                 diffInput.style.color = diff < 0 ? '#ef4444' : '#10b981';
             } else {
@@ -502,14 +619,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const goalInput = document.getElementById('monthly-goal-input');
             const goal = parseFloat(goalInput?.value) || 6000;
-            const totalWithTips = mEarnings + mTips;
-            const progress = Math.min(Math.round((totalWithTips / goal) * 100), 100);
+            const progress = Math.min(Math.round((metrics.totalEarnWithTips / goal) * 100), 100);
 
             const barFill = document.getElementById('progress-bar-fill');
             const barText = document.getElementById('progress-bar-text');
             if (barFill) barFill.style.width = `${progress}%`;
-            if (barText) barText.textContent = `${progress}% (${totalWithTips.toFixed(0)} / ${goal} zł)`;
+            if (barText) barText.textContent = `${progress}% (${metrics.totalEarnWithTips.toFixed(0)} / ${goal} zł)`;
         }
+
+        // PORÓWNYWARKA MIESIĘCY
+        document.getElementById('btn-compare-months')?.addEventListener('click', () => {
+            const m1 = document.getElementById('compare-month-1')?.value;
+            const m2 = document.getElementById('compare-month-2')?.value;
+            const resContainer = document.getElementById('comparison-results');
+            if (!m1 || !m2 || !resContainer) return;
+
+            const d1 = getMonthMetrics(m1);
+            const d2 = getMonthMetrics(m2);
+
+            const diffEarn = d2.totalEarnWithTips - d1.totalEarnWithTips;
+            const diffParcels = d2.mTotalParcels - d1.mTotalParcels;
+
+            resContainer.innerHTML = `
+                <table class="comparison-table">
+                    <tr><th>Parametr</th><th>${m1}</th><th>${m2}</th><th>Różnica</th></tr>
+                    <tr><td>Suma paczek</td><td>${d1.mTotalParcels}</td><td>${d2.mTotalParcels}</td><td>${diffParcels > 0 ? '+' : ''}${diffParcels}</td></tr>
+                    <tr><td>Zarobek + Tipy</td><td>${d1.totalEarnWithTips.toFixed(2)} zł</td><td>${d2.totalEarnWithTips.toFixed(2)} zł</td><td>${diffEarn > 0 ? '+' : ''}${diffEarn.toFixed(2)} zł</td></tr>
+                    <tr><td>Dni pracy</td><td>${d1.mWorkingDays}</td><td>${d2.mWorkingDays}</td><td>${d2.mWorkingDays - d1.mWorkingDays}</td></tr>
+                    <tr><td>Średnia dniówka</td><td>${d1.avgDailyEarn.toFixed(2)} zł</td><td>${d2.avgDailyEarn.toFixed(2)} zł</td><td>${(d2.avgDailyEarn - d1.avgDailyEarn).toFixed(2)} zł</td></tr>
+                </table>
+            `;
+            logActivity(`Porównano miesiące: ${m1} vs ${m2}`);
+        });
 
         document.getElementById('monthly-goal-input')?.addEventListener('input', renderStats);
 
@@ -523,6 +664,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 await db.collection('kurier_app').doc('main_data').set(appData, { merge: true });
+                logActivity(`Zapisano kwotę przelewu dla ${selectedMonth}: ${val} zł`);
                 renderStats();
                 alert('Zapisano przelew!');
             } catch(err) {
@@ -535,7 +677,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let totalAddress = 0, totalSecondShifts = 0;
 
             if (appData.days) {
-                Object.values(appData.days).forEach(d => {
+                Object.entries(appData.days).forEach(([dateStr, d]) => {
                     const addr = parseInt(d.address, 10) || 0;
                     const apmPudo = parseInt(d.apmPudo, 10) || (parseInt(d.apm, 10) || 0);
                     const awizo = parseInt(d.awizo, 10) || 0;
@@ -557,7 +699,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (has2nd) dayMinutes += calculateWorkMinutes(d.secondWorkStart, d.secondWorkEnd);
                     const dayHours = dayMinutes / 60;
 
-                    const baseRate = calculateDayRate(addr + apmPudo + awizo + pick, has2nd, secRate);
+                    const baseRate = calculateDayRate(addr + apmPudo + awizo + pick, has2nd, secRate, dateStr);
                     const totalEarn = baseRate + tips;
 
                     if (dayParcels > maxParcels) maxParcels = dayParcels;
@@ -603,29 +745,63 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('cfg-tier3-limit').value = set.tier3Limit;
             document.getElementById('cfg-rate-tier3').value = set.rateTier3;
             document.getElementById('cfg-default-sec-rate').value = set.defaultSecRate;
+            
+            const themeSelect = document.getElementById('theme-mode-select');
+            if (themeSelect) themeSelect.value = set.theme;
+
+            const colorPicker = document.getElementById('theme-color-picker');
+            if (colorPicker) colorPicker.value = set.accentColor;
+
+            const compactCb = document.getElementById('toggle-compact-calendar');
+            if (compactCb) compactCb.checked = set.compactCalendar;
         }
 
         document.getElementById('settings-form')?.addEventListener('submit', async (e) => {
             e.preventDefault();
             const newPin = document.getElementById('cfg-pin').value.trim();
 
-            appData.settings = {
+            const newSettings = {
                 rateTier1: parseFloat(document.getElementById('cfg-rate-tier1').value) || 240,
                 tier2Limit: parseInt(document.getElementById('cfg-tier2-limit').value, 10) || 200,
                 rateTier2: parseFloat(document.getElementById('cfg-rate-tier2').value) || 270,
                 tier3Limit: parseInt(document.getElementById('cfg-tier3-limit').value, 10) || 301,
                 rateTier3: parseFloat(document.getElementById('cfg-rate-tier3').value) || 300,
                 defaultSecRate: parseFloat(document.getElementById('cfg-default-sec-rate').value) || 180,
-                pin: newPin !== "" ? newPin : (appData.settings?.pin || "1234")
+                pin: newPin !== "" ? newPin : (appData.settings?.pin || "1234"),
+                theme: document.getElementById('theme-mode-select')?.value || "dark",
+                accentColor: document.getElementById('theme-color-picker')?.value || "#3b82f6",
+                compactCalendar: document.getElementById('toggle-compact-calendar')?.checked || false
             };
+
+            // HISTORIA STAWEK: Jeśli progi uległy zmianie, zapisujemy wpis w historii z dzisiejszą datą
+            const todayStr = formatDate(new Date());
+            if (!appData.ratesHistory) appData.ratesHistory = [];
+            
+            const currentEff = getEffectiveSettingsForDate(todayStr);
+            if (currentEff.rateTier1 !== newSettings.rateTier1 || currentEff.rateTier2 !== newSettings.rateTier2 || currentEff.rateTier3 !== newSettings.rateTier3) {
+                appData.ratesHistory.push({
+                    effectiveFrom: todayStr,
+                    rateTier1: newSettings.rateTier1,
+                    tier2Limit: newSettings.tier2Limit,
+                    rateTier2: newSettings.rateTier2,
+                    tier3Limit: newSettings.tier3Limit,
+                    rateTier3: newSettings.rateTier3,
+                    defaultSecRate: newSettings.defaultSecRate
+                });
+                logActivity(`Zarejestrowano zmianę stawek od dnia ${todayStr}`);
+            }
+
+            appData.settings = newSettings;
 
             try {
                 await db.collection('kurier_app').doc('main_data').set(appData, { merge: true });
-                document.getElementById('cfg-pin').value = ''; // Czyszczenie pola PIN dla bezpieczeństwa
-                alert('Ustawienia i progi zostały pomyślnie zapisane!');
+                document.getElementById('cfg-pin').value = '';
+                logActivity("Zapisano nowe ustawienia i motyw.");
+                applyTheme();
                 renderCalendar();
                 calculateDailyTotals();
                 renderStats();
+                alert('Ustawienia i progi zostały pomyślnie zapisane!');
             } catch(err) {
                 alert('Błąd zapisu ustawień: ' + err.message);
             }

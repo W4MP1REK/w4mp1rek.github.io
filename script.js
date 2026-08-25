@@ -10,7 +10,6 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// Włączenie obsługi offline w Firestore
 db.enablePersistence().catch(err => console.error("Firestore persistence error:", err));
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -96,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const [eH, eM] = endStr.split(':').map(Number);
             let start = sH * 60 + sM;
             let end = eH * 60 + eM;
-            if (end < start) end += 24 * 60; // Nocna zmiana
+            if (end < start) end += 24 * 60;
             return end - start;
         }
 
@@ -165,9 +164,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 let dotsHtml = '';
                 if (dayData) {
                     dotsHtml += '<div style="display:flex; gap:3px; margin-top:3px;">';
-                    // Pierwsza zmiana (zielona kropka)
                     dotsHtml += '<div style="width:6px;height:6px;background:#10b981;border-radius:50%;"></div>';
-                    // Druga zmiana (fioletowa kropka)
                     if (dayData.secondShift) {
                         dotsHtml += '<div style="width:6px;height:6px;background:#8b5cf6;border-radius:50%;"></div>';
                     }
@@ -195,7 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 ? appData.days[dateStr] 
                 : { 
                     address: 0, apmPudo: 0, awizo: 0, pickups: 0, tips: 0, workStart: '', workEnd: '',
-                    secondShift: false, secondAddress: 0, secondApmPudo: 0, secondPickups: 0, secondShiftRate: 180 
+                    secondShift: false, secondWorkStart: '', secondWorkEnd: '', secondAddress: 0, secondApmPudo: 0, secondPickups: 0, secondShiftRate: 180 
                   };
 
             document.getElementById('work-start').value = dayData.workStart || '';
@@ -214,6 +211,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (secondShiftCb) secondShiftCb.checked = has2nd;
             if (secDetailsDiv) secDetailsDiv.style.display = has2nd ? 'block' : 'none';
 
+            document.getElementById('second-work-start').value = dayData.secondWorkStart || '';
+            document.getElementById('second-work-end').value = dayData.secondWorkEnd || '';
             document.getElementById('second-address').value = dayData.secondAddress !== undefined ? dayData.secondAddress : 0;
             document.getElementById('second-apm-pudo').value = dayData.secondApmPudo !== undefined ? dayData.secondApmPudo : 0;
             document.getElementById('second-pickups').value = dayData.secondPickups !== undefined ? dayData.secondPickups : 0;
@@ -223,11 +222,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         function calculateDailyTotals() {
-            const startStr = document.getElementById('work-start')?.value;
-            const endStr = document.getElementById('work-end')?.value;
-            const minutes = calculateWorkMinutes(startStr, endStr);
-            const hours = Math.floor(minutes / 60);
-            const mins = minutes % 60;
+            // Czas 1. zmiany
+            const startStr1 = document.getElementById('work-start')?.value;
+            const endStr1 = document.getElementById('work-end')?.value;
+            let totalMinutes = calculateWorkMinutes(startStr1, endStr1);
+
+            // Czas 2. zmiany
+            const hasSecondShift = document.getElementById('second-shift')?.checked || false;
+            if (hasSecondShift) {
+                const startStr2 = document.getElementById('second-work-start')?.value;
+                const endStr2 = document.getElementById('second-work-end')?.value;
+                totalMinutes += calculateWorkMinutes(startStr2, endStr2);
+            }
+
+            const hours = Math.floor(totalMinutes / 60);
+            const mins = totalMinutes % 60;
 
             const hoursEl = document.getElementById('daily-hours');
             if (hoursEl) hoursEl.textContent = `${hours}h ${mins}m`;
@@ -240,7 +249,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const firstShiftTotal = addr + apmPudo + awizo + pick;
 
-            const hasSecondShift = document.getElementById('second-shift')?.checked || false;
             const secAddr = hasSecondShift ? (parseInt(document.getElementById('second-address')?.value, 10) || 0) : 0;
             const secApmPudo = hasSecondShift ? (parseInt(document.getElementById('second-apm-pudo')?.value, 10) || 0) : 0;
             const secPick = hasSecondShift ? (parseInt(document.getElementById('second-pickups')?.value, 10) || 0) : 0;
@@ -260,7 +268,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         ['address', 'apm-pudo', 'awizo', 'pickups', 'tips', 'work-start', 'work-end', 
-         'second-address', 'second-apm-pudo', 'second-pickups', 'second-shift-rate'].forEach(id => {
+         'second-work-start', 'second-work-end', 'second-address', 'second-apm-pudo', 'second-pickups', 'second-shift-rate'].forEach(id => {
             const el = document.getElementById(id);
             if (el) {
                 el.addEventListener('input', calculateDailyTotals);
@@ -294,6 +302,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     awizo: parseInt(document.getElementById('awizo')?.value, 10) || 0,
                     pickups: parseInt(document.getElementById('pickups')?.value, 10) || 0,
                     secondShift: hasSecondShift,
+                    secondWorkStart: document.getElementById('second-work-start')?.value || '',
+                    secondWorkEnd: document.getElementById('second-work-end')?.value || '',
                     secondAddress: parseInt(document.getElementById('second-address')?.value, 10) || 0,
                     secondApmPudo: parseInt(document.getElementById('second-apm-pudo')?.value, 10) || 0,
                     secondPickups: parseInt(document.getElementById('second-pickups')?.value, 10) || 0,
@@ -381,7 +391,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         mAwizo += awizo;
                         mPick += (pick + secPick);
                         mTips += tips;
-                        mMinutes += calculateWorkMinutes(d.workStart, d.workEnd);
+
+                        let dayMinutes = calculateWorkMinutes(d.workStart, d.workEnd);
+                        if (hasSecondShift) {
+                            dayMinutes += calculateWorkMinutes(d.secondWorkStart, d.secondWorkEnd);
+                        }
+                        mMinutes += dayMinutes;
 
                         const firstShiftTotal = addr + apmPudo + awizo + pick;
                         mEarnings += calculateDayRate(firstShiftTotal, hasSecondShift, secRate);
@@ -409,7 +424,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     ? appData.payouts[selectedMonth] : '';
             }
 
-            // Progress Bar Calculation
             const goalInput = document.getElementById('monthly-goal-input');
             const goal = parseFloat(goalInput.value) || 6000;
             const totalWithTips = mEarnings + mTips;

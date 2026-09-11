@@ -639,7 +639,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            doc.save(`Podsumowanie_${selectedMonth}.pdf`);
+            doc.save(`Podsumowanie_${selectedMonth}_JakubKrygier.pdf`);
         }
 
         document.getElementById('export-pdf-btn')?.addEventListener('click', generateMonthPDF);

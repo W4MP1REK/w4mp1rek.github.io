@@ -321,16 +321,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const totalEarn = baseRate + tips;
 
             document.getElementById('daily-total-parcels').textContent = totalParcels;
-            document.getElementById('daily-rate').textContent = `${totalEarn.toFixed(2)} zł ${tips > 0 ? `(w tym ${tips}zł tip)` : ''}`;
+            document.getElementById('daily-rate').textContent = `${totalEarn.toFixed(2)} zl ${tips > 0 ? `(w tym ${tips}zl tip)` : ''}`;
 
             if (totalHoursDecimal > 0) {
                 const pace = Math.round(totalParcels / totalHoursDecimal);
                 const hourlyRate = (totalEarn / totalHoursDecimal).toFixed(2);
                 document.getElementById('daily-pace').textContent = `${pace} paczek/h`;
-                document.getElementById('daily-hourly-rate').textContent = `${hourlyRate} zł/h`;
+                document.getElementById('daily-hourly-rate').textContent = `${hourlyRate} zl/h`;
             } else {
                 document.getElementById('daily-pace').textContent = `0 paczek/h`;
-                document.getElementById('daily-hourly-rate').textContent = `0.00 zł/h`;
+                document.getElementById('daily-hourly-rate').textContent = `0.00 zl/h`;
             }
         }
 
@@ -476,22 +476,22 @@ document.addEventListener('DOMContentLoaded', () => {
             const now = new Date();
             const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
             const forecast = mWorkingDays > 0 ? ((mEarnings + mTips) / mWorkingDays) * Math.min(daysInMonth, 22) : 0;
-            document.getElementById('stat-forecast').textContent = `~${forecast.toFixed(2)} zł`;
+            document.getElementById('stat-forecast').textContent = `~${forecast.toFixed(2)} zl`;
 
-            document.getElementById('stat-monthly-earnings').textContent = `${mEarnings.toFixed(2)} zł`;
-            document.getElementById('stat-monthly-tips').textContent = `${mTips.toFixed(2)} zł`;
+            document.getElementById('stat-monthly-earnings').textContent = `${mEarnings.toFixed(2)} zl`;
+            document.getElementById('stat-monthly-tips').textContent = `${mTips.toFixed(2)} zl`;
             document.getElementById('stat-monthly-days').textContent = `${mWorkingDays} dni`;
             document.getElementById('stat-second-shift-days').textContent = `${mSecondShiftDays} dni`;
             document.getElementById('stat-monthly-hours').textContent = `${mHours}h`;
             document.getElementById('stat-monthly-pace').textContent = `${mPace} paczek/h`;
-            document.getElementById('stat-monthly-hourly-rate').textContent = `${mHourlyRate} zł/h`;
+            document.getElementById('stat-monthly-hourly-rate').textContent = `${mHourlyRate} zl/h`;
             document.getElementById('stat-monthly-parcels').textContent = mTotalParcels;
             document.getElementById('stat-address').textContent = mAddr;
             document.getElementById('stat-apm-pudo').textContent = mApmPudo;
             document.getElementById('stat-awizo').textContent = mAwizo;
             document.getElementById('stat-pickups').textContent = mPick;
 
-            document.getElementById('calculated-payout').value = `${mEarnings.toFixed(2)} zł`;
+            document.getElementById('calculated-payout').value = `${mEarnings.toFixed(2)} zl`;
 
             const receivedInput = document.getElementById('received-payout');
             const diffInput = document.getElementById('payout-difference');
@@ -501,10 +501,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (recVal !== '') {
                 const diff = parseFloat(recVal) - mEarnings;
-                diffInput.value = `${diff >= 0 ? '+' : ''}${diff.toFixed(2)} zł`;
+                diffInput.value = `${diff >= 0 ? '+' : ''}${diff.toFixed(2)} zl`;
                 diffInput.style.color = diff < 0 ? '#ef4444' : '#10b981';
             } else {
-                diffInput.value = '0.00 zł';
+                diffInput.value = '0.00 zl';
                 diffInput.style.color = 'inherit';
             }
 
@@ -516,7 +516,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const barFill = document.getElementById('progress-bar-fill');
             const barText = document.getElementById('progress-bar-text');
             if (barFill) barFill.style.width = `${progress}%`;
-            if (barText) barText.textContent = `${progress}% (${totalWithTips.toFixed(0)} / ${goal} zł)`;
+            if (barText) barText.textContent = `${progress}% (${totalWithTips.toFixed(0)} / ${goal} zl)`;
         }
 
         document.getElementById('monthly-goal-input')?.addEventListener('input', renderStats);
@@ -597,7 +597,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         '',
                         eveningD2d > 0 ? eveningD2d : '',
                         eveningPickup > 0 ? eveningPickup : '',
-                        dayEarn > 0 ? `${dayEarn.toFixed(2)} zł` : ''
+                        dayEarn > 0 ? `${dayEarn.toFixed(2)} zl` : ''
                     ]);
                 } else {
                     tableRows.push([dateDisplay, '', '', '', '', '', '']);
@@ -687,16 +687,16 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             document.getElementById('rec-max-parcels').textContent = maxParcels;
-            document.getElementById('rec-max-tip').textContent = `${maxTip.toFixed(2)} zł`;
-            document.getElementById('rec-max-earning').textContent = `${maxEarning.toFixed(2)} zł`;
+            document.getElementById('rec-max-tip').textContent = `${maxTip.toFixed(2)} zl`;
+            document.getElementById('rec-max-earning').textContent = `${maxEarning.toFixed(2)} zl`;
             document.getElementById('rec-max-pace').textContent = `${maxPace} paczek/h`;
 
             const badges = [
                 { title: "Setka na Adres", desc: "Ponad 100 paczek adresowych łącznie", unlocked: totalAddress >= 100, icon: "🏠" },
-                { title: "Król Tippingu", desc: "Zgarnij ponad 50 zł napiwku w 1 dzień", unlocked: maxTip >= 50, icon: "💰" },
+                { title: "Król Tippingu", desc: "Zgarnij ponad 50 zl napiwku w 1 dzień", unlocked: maxTip >= 50, icon: "💰" },
                 { title: "Dwuzmianowiec", desc: "Przepracuj co najmniej 5 drugich zmian", unlocked: totalSecondShifts >= 5, icon: "🌙" },
                 { title: "Błyskawica", desc: "Osiągnij tempo powyżej 40 paczek/h", unlocked: maxPace >= 40, icon: "⚡" },
-                { title: "Tytan Pracy", desc: "Zarób ponad 400 zł jednego dnia", unlocked: maxEarning >= 400, icon: "🏆" }
+                { title: "Tytan Pracy", desc: "Zarób ponad 400 zl jednego dnia", unlocked: maxEarning >= 400, icon: "🏆" }
             ];
 
             const bContainer = document.getElementById('badges-container');

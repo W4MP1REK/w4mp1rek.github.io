@@ -605,25 +605,25 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             tableRows.push([
-                'Łącznie do wypłaty',
+                'Lacznie do wyplaty',
                 totalMorningD2d || '',
                 totalMorningPickup || '',
                 totalMorningApm || '',
                 totalEveningD2d || '',
                 totalEveningPickup || '',
-                `${totalPayout.toFixed(2)} zł`
+                `${totalPayout.toFixed(2)} zl`
             ]);
 
-            doc.text(`Podsumowanie miesiąca: ${selectedMonth}`, 14, 15);
+            doc.text(`Podsumowanie miesiaca: ${selectedMonth}`, 14, 15);
 
             doc.autoTable({
                 startY: 20,
                 head: [[
                     'Data',
-                    'Rano/Утро\nD2D/APM',
+                    'Rano\nD2D/APM',
                     'Odbior',
                     'APM',
-                    'Wieczor/Вечер',
+                    'Wieczor',
                     'Odbior',
                     'Do wyplaty'
                 ]],
